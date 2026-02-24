@@ -2,16 +2,16 @@ const IS_DEV = process.env.APP_VARIANT === "development";
 
 export default {
   expo: {
-    name: IS_DEV ? "YOUR_APP_NAME (Dev)" : "YOUR_APP_NAME",
-    slug: "YOUR_APP_SLUG",
+    name: IS_DEV ? "Chifoumi (Dev)" : "Chifoumi",
+    slug: "chifoumi",
     version: "1.0.0",
     orientation: "default",
-    scheme: IS_DEV ? "YOUR_APP_SCHEME-dev" : "YOUR_APP_SCHEME",
+    scheme: IS_DEV ? "chifoumi-dev" : "chifoumi",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: IS_DEV ? "YOUR_BUNDLE_ID.dev" : "YOUR_BUNDLE_ID",
+      bundleIdentifier: IS_DEV ? "com.mldddd.chifoumi.dev" : "com.mldddd.chifoumi",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
@@ -65,7 +65,7 @@ export default {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: IS_DEV ? "YOUR_ANDROID_PACKAGE.dev" : "YOUR_ANDROID_PACKAGE",
+      package: IS_DEV ? "com.mldddd.chifoumi.dev" : "com.mldddd.chifoumi",
     },
     web: {
       output: "static",
@@ -106,14 +106,14 @@ export default {
       policy: "fingerprint",
     },
     updates: {
-      url: "https://u.expo.dev/YOUR_EAS_PROJECT_ID",
+      url: "https://u.expo.dev/ffa691dc-e900-4abe-8df4-7c6e23cbb12d",
     },
     extra: {
       router: {},
       eas: {
-        projectId: "YOUR_EAS_PROJECT_ID",
+        projectId: "ffa691dc-e900-4abe-8df4-7c6e23cbb12d",
       },
     },
-    owner: "YOUR_EXPO_OWNER",
+    owner: "mldddd",
   },
 };
