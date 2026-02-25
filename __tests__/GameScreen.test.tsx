@@ -36,7 +36,6 @@ describe("GameScreen", () => {
   it("shows idle state with start button", () => {
     renderApp();
 
-    expect(screen.getByText("Press Start")).toBeTruthy();
     expect(screen.getByText("Start")).toBeTruthy();
     expect(screen.getByText("Score: 0")).toBeTruthy();
   });
@@ -228,7 +227,7 @@ describe("GameScreen", () => {
 
     await user.press(screen.getByLabelText("Rock!"));
 
-    expect(screen.getByText("Press Start")).toBeTruthy();
+    expect(screen.getByText("Start")).toBeTruthy();
     expect(Haptics.impactAsync).not.toHaveBeenCalled();
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
   });

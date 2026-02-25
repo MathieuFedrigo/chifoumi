@@ -122,49 +122,43 @@ export default function GameScreen() {
           <Text style={[styles.phaseText, { color: theme.colors.text }]}>
             {phaseText}
           </Text>
+        ) : mistakeReason ? (
+          <View style={styles.gameOver}>
+            <Text style={[styles.gameOverTitle, { color: theme.colors.warning }]}>
+              {t("game.gameOver")}
+            </Text>
+            <Text style={[styles.mistakeText, { color: theme.colors.textSecondary }]}>
+              {mistakeText}
+            </Text>
+            <Text style={[styles.finalScore, { color: theme.colors.text }]}>
+              {t("game.finalScore", { count: score })}
+            </Text>
+            <Pressable
+              style={[styles.startButton, { backgroundColor: theme.colors.button }]}
+              onPress={startGame}
+              accessibilityRole="button"
+              accessibilityLabel={t("game.restart")}
+            >
+              <Text style={[styles.startButtonText, { color: theme.colors.buttonTint }]}>
+                {t("game.restart")}
+              </Text>
+            </Pressable>
+          </View>
         ) : (
-          <Text style={[styles.idleText, { color: theme.colors.textSecondary }]}>
-            {t("game.idle")}
-          </Text>
+          <View style={styles.startContainer}>
+            <Pressable
+              style={[styles.startButton, { backgroundColor: theme.colors.button }]}
+              onPress={startGame}
+              accessibilityRole="button"
+              accessibilityLabel={t("game.start")}
+            >
+              <Text style={[styles.startButtonText, { color: theme.colors.buttonTint }]}>
+                {t("game.start")}
+              </Text>
+            </Pressable>
+          </View>
         )}
       </View>
-
-      {!isPlaying && mistakeReason ? (
-        <View style={styles.gameOver}>
-          <Text style={[styles.gameOverTitle, { color: theme.colors.warning }]}>
-            {t("game.gameOver")}
-          </Text>
-          <Text style={[styles.mistakeText, { color: theme.colors.textSecondary }]}>
-            {mistakeText}
-          </Text>
-          <Text style={[styles.finalScore, { color: theme.colors.text }]}>
-            {t("game.finalScore", { count: score })}
-          </Text>
-          <Pressable
-            style={[styles.startButton, { backgroundColor: theme.colors.button }]}
-            onPress={startGame}
-            accessibilityRole="button"
-            accessibilityLabel={t("game.restart")}
-          >
-            <Text style={[styles.startButtonText, { color: theme.colors.buttonTint }]}>
-              {t("game.restart")}
-            </Text>
-          </Pressable>
-        </View>
-      ) : !isPlaying ? (
-        <View style={styles.startContainer}>
-          <Pressable
-            style={[styles.startButton, { backgroundColor: theme.colors.button }]}
-            onPress={startGame}
-            accessibilityRole="button"
-            accessibilityLabel={t("game.start")}
-          >
-            <Text style={[styles.startButtonText, { color: theme.colors.buttonTint }]}>
-              {t("game.start")}
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
 
       <View style={styles.choiceButtons}>
         {/* eslint-disable-next-line i18next/no-literal-string */}
@@ -216,10 +210,6 @@ const styles = StyleSheet.create({
     fontSize: 64,
     fontWeight: "900",
   },
-  idleText: {
-    fontSize: 24,
-    fontWeight: "500",
-  },
   resultContainer: {
     alignItems: "center",
     gap: 16,
@@ -248,7 +238,6 @@ const styles = StyleSheet.create({
   gameOver: {
     alignItems: "center",
     gap: 12,
-    marginBottom: 24,
   },
   gameOverTitle: {
     fontSize: 32,
@@ -264,7 +253,6 @@ const styles = StyleSheet.create({
   },
   startContainer: {
     alignItems: "center",
-    marginBottom: 24,
   },
   startButton: {
     paddingHorizontal: 40,
