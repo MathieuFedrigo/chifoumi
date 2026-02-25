@@ -8,9 +8,9 @@ export type MistakeReason = "too_early" | "too_late";
 
 export const ROCK_DURATION = 800;
 export const PAPER_DURATION = 800;
-export const SCISSORS_DURATION = 800;
+export const SCISSORS_DURATION = 400;
 export const RESULT_DURATION = 1000;
-export const INPUT_GRACE_BEFORE_SCISSORS = 150;
+export const INPUT_GRACE_BEFORE_SCISSORS = 100;
 
 interface GameActions {
   startGame: () => void;

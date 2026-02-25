@@ -21,7 +21,7 @@ const advanceToScissors = () => {
   });
 };
 
-/** Advance through rock(800) + paper(800) + scissors(800) = timeout */
+/** Advance through rock(800) + paper(800) + scissors(400) = timeout */
 const advanceToTimeout = () => {
   act(() => {
     jest.advanceTimersByTime(800); // rock → paper
@@ -30,7 +30,7 @@ const advanceToTimeout = () => {
     jest.advanceTimersByTime(800); // paper → scissors
   });
   act(() => {
-    jest.advanceTimersByTime(800); // scissors → too late
+    jest.advanceTimersByTime(400); // scissors → too late
   });
 };
 
@@ -146,7 +146,7 @@ describe("GameScreen", () => {
       jest.advanceTimersByTime(800); // rock → paper
     });
     act(() => {
-      jest.advanceTimersByTime(400); // 400ms into paper (< 650ms grace threshold)
+      jest.advanceTimersByTime(400); // 400ms into paper (< 700ms grace threshold)
     });
     expect(screen.getByText("Paper!")).toBeTruthy();
 
@@ -156,7 +156,7 @@ describe("GameScreen", () => {
     expect(screen.getByText("Too early!")).toBeTruthy();
   });
 
-  it("accepts input during grace period (650ms into paper phase)", async () => {
+  it("accepts input during grace period (700ms into paper phase)", async () => {
     jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
 
     const user = userEvent.setup();
@@ -166,7 +166,7 @@ describe("GameScreen", () => {
       jest.advanceTimersByTime(800); // rock → paper
     });
     act(() => {
-      jest.advanceTimersByTime(650); // 650ms into paper (>= 650ms grace threshold)
+      jest.advanceTimersByTime(700); // 700ms into paper (>= 700ms grace threshold)
     });
     expect(screen.getByText("Paper!")).toBeTruthy();
 
