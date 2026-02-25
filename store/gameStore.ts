@@ -1,16 +1,11 @@
 import { create } from "zustand";
 import * as Sentry from "@sentry/react-native";
+import { getRoundTimings } from "@/lib/rhythmDifficulty";
 
 export type Choice = "rock" | "paper" | "scissors";
 export type GamePhase = "idle" | "rock" | "paper" | "scissors" | "result";
 export type RoundResult = "win" | "lose" | "draw";
 export type MistakeReason = "too_early" | "too_late";
-
-export const ROCK_DURATION = 800;
-export const PAPER_DURATION = 800;
-export const SCISSORS_DURATION = 400;
-export const RESULT_DURATION = 1000;
-export const INPUT_GRACE_BEFORE_SCISSORS = 100;
 
 interface GameActions {
   startGame: () => void;
@@ -79,14 +74,15 @@ export const useGameStore = create<GameState>()((set, get) => ({
     },
 
     makeChoice: (choice: Choice) => {
-      const { phase, phaseStartedAt } = get();
+      const { phase, score, phaseStartedAt } = get();
       if (phase === "rock") {
         get().actions.endGame("too_early");
         return;
       }
       if (phase === "paper") {
         const elapsed = Date.now() - phaseStartedAt;
-        if (elapsed < PAPER_DURATION - INPUT_GRACE_BEFORE_SCISSORS) {
+        const timings = getRoundTimings(score);
+        if (elapsed < timings.beatInterval - timings.graceBefore) {
           get().actions.endGame("too_early");
         } else {
           // grace period — treat as valid scissors input

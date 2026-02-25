@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import HomeScreen from "@/app/index";
 import GameScreen from "@/app/game";
 import * as Haptics from "expo-haptics";
+import { getRoundTimings } from "@/lib/rhythmDifficulty";
 
 const renderApp = () => {
   return renderRouter(
@@ -11,26 +12,28 @@ const renderApp = () => {
   );
 };
 
-/** Advance through rock(800ms) → paper(800ms) to reach scissors phase */
-const advanceToScissors = () => {
+/** Advance through rock + paper to reach scissors phase */
+const advanceToScissors = (round = 0) => {
+  const { beatInterval } = getRoundTimings(round);
   act(() => {
-    jest.advanceTimersByTime(800); // rock → paper
+    jest.advanceTimersByTime(beatInterval); // rock → paper
   });
   act(() => {
-    jest.advanceTimersByTime(800); // paper → scissors
+    jest.advanceTimersByTime(beatInterval); // paper → scissors
   });
 };
 
-/** Advance through rock(800) + paper(800) + scissors(400) = timeout */
-const advanceToTimeout = () => {
+/** Advance through rock + paper + scissors timeout = game over */
+const advanceToTimeout = (round = 0) => {
+  const { beatInterval, graceAfter } = getRoundTimings(round);
   act(() => {
-    jest.advanceTimersByTime(800); // rock → paper
+    jest.advanceTimersByTime(beatInterval); // rock → paper
   });
   act(() => {
-    jest.advanceTimersByTime(800); // paper → scissors
+    jest.advanceTimersByTime(beatInterval); // paper → scissors
   });
   act(() => {
-    jest.advanceTimersByTime(400); // scissors → too late
+    jest.advanceTimersByTime(graceAfter); // scissors → too late
   });
 };
 
@@ -52,16 +55,17 @@ describe("GameScreen", () => {
 
   it("transitions through rock → paper → scissors phases", () => {
     renderApp();
+    const { beatInterval } = getRoundTimings(0);
 
     expect(screen.getByText("Rock!")).toBeTruthy();
 
     act(() => {
-      jest.advanceTimersByTime(800);
+      jest.advanceTimersByTime(beatInterval);
     });
     expect(screen.getByText("Paper!")).toBeTruthy();
 
     act(() => {
-      jest.advanceTimersByTime(800);
+      jest.advanceTimersByTime(beatInterval);
     });
     expect(screen.getByText("Scissors!")).toBeTruthy();
   });
@@ -126,9 +130,10 @@ describe("GameScreen", () => {
   it("ends game with 'too early' when pressing during paper phase", async () => {
     const user = userEvent.setup();
     renderApp();
+    const { beatInterval } = getRoundTimings(0);
 
     act(() => {
-      jest.advanceTimersByTime(800);
+      jest.advanceTimersByTime(beatInterval);
     });
     expect(screen.getByText("Paper!")).toBeTruthy();
 
@@ -138,15 +143,17 @@ describe("GameScreen", () => {
     expect(screen.getByText("Too early!")).toBeTruthy();
   });
 
-  it("ends game with 'too early' when pressing 400ms into paper phase", async () => {
+  it("ends game with 'too early' when pressing before grace period", async () => {
     const user = userEvent.setup();
     renderApp();
+    const { beatInterval } = getRoundTimings(0);
 
     act(() => {
-      jest.advanceTimersByTime(800); // rock → paper
+      jest.advanceTimersByTime(beatInterval); // rock → paper
     });
     act(() => {
-      jest.advanceTimersByTime(400); // 400ms into paper (< 700ms grace threshold)
+      // Advance 400ms into paper (well before 650ms grace threshold)
+      jest.advanceTimersByTime(400);
     });
     expect(screen.getByText("Paper!")).toBeTruthy();
 
@@ -156,17 +163,19 @@ describe("GameScreen", () => {
     expect(screen.getByText("Too early!")).toBeTruthy();
   });
 
-  it("accepts input during grace period (700ms into paper phase)", async () => {
+  it("accepts input during grace period", async () => {
     jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
 
     const user = userEvent.setup();
     renderApp();
+    const { beatInterval, graceBefore } = getRoundTimings(0);
 
     act(() => {
-      jest.advanceTimersByTime(800); // rock → paper
+      jest.advanceTimersByTime(beatInterval); // rock → paper
     });
     act(() => {
-      jest.advanceTimersByTime(700); // 700ms into paper (>= 700ms grace threshold)
+      // Advance to exactly when grace period starts
+      jest.advanceTimersByTime(beatInterval - graceBefore);
     });
     expect(screen.getByText("Paper!")).toBeTruthy();
 
@@ -238,9 +247,10 @@ describe("GameScreen", () => {
     expect(screen.getByText("You Win!")).toBeTruthy();
     expect(screen.getByText("Score: 0")).toBeTruthy();
 
-    // Advance through result phase (1000ms) → next rock phase
+    // Result phase uses round 0 beatInterval
+    const { beatInterval } = getRoundTimings(0);
     act(() => {
-      jest.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(beatInterval);
     });
 
     expect(screen.getByText("Rock!")).toBeTruthy();
@@ -256,13 +266,14 @@ describe("GameScreen", () => {
     // First game: play one round
     advanceToScissors();
     await user.press(screen.getByLabelText("Paper!"));
+    const t0 = getRoundTimings(0);
     act(() => {
-      jest.advanceTimersByTime(1000); // result → next round
+      jest.advanceTimersByTime(t0.beatInterval); // result → next round
     });
     expect(screen.getByText("Score: 1")).toBeTruthy();
 
     // Let it time out on second round (too late)
-    advanceToTimeout();
+    advanceToTimeout(1);
 
     expect(screen.getByText("Game Over")).toBeTruthy();
     expect(screen.getByText("Final Score: 1")).toBeTruthy();

@@ -5,12 +5,8 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import { useTheme } from "@/hooks/useTheme";
-import {
-  useGameStore,
-  useGameStoreActions,
-  PAPER_DURATION,
-  INPUT_GRACE_BEFORE_SCISSORS,
-} from "@/store/gameStore";
+import { useGameStore, useGameStoreActions } from "@/store/gameStore";
+import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { useGameLoop } from "@/hooks/useGameLoop";
 import type { Choice } from "@/store/gameStore";
 import type { ComponentProps } from "react";
@@ -55,7 +51,8 @@ export default function GameScreen() {
   const handleChoice = (choice: Choice) => {
     if (!isPlaying) return;
     const elapsed = Date.now() - phaseStartedAt;
-    const inGracePeriod = phase === "paper" && elapsed >= PAPER_DURATION - INPUT_GRACE_BEFORE_SCISSORS;
+    const timings = getRoundTimings(score);
+    const inGracePeriod = phase === "paper" && elapsed >= timings.beatInterval - timings.graceBefore;
     if (phase === "scissors" || inGracePeriod) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
