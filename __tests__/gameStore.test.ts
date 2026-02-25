@@ -43,7 +43,8 @@ describe("useGameStore edge cases", () => {
     jest.spyOn(Math, "random").mockReturnValue(0);
     const store = useGameStore.getState();
     store.startGame();
-    store.setPhase("scissors");
+    store.advancePhase(); // rock → paper
+    store.advancePhase(); // paper → scissors
     store.makeChoice("rock"); // enters result phase
 
     expect(useGameStore.getState().phase).toBe("result");
@@ -53,18 +54,26 @@ describe("useGameStore edge cases", () => {
     expect(useGameStore.getState().phase).toBe("result");
   });
 
-  it("processRound is a no-op when playerChoice is set", () => {
+  it("advancePhase from scissors is a no-op when playerChoice is set", () => {
     jest.spyOn(Math, "random").mockReturnValue(0);
     const store = useGameStore.getState();
     store.startGame();
-    store.setPhase("scissors");
-    store.makeChoice("rock"); // sets playerChoice
+    store.advancePhase(); // rock → paper
+    store.advancePhase(); // paper → scissors
+    store.makeChoice("rock"); // sets playerChoice, enters result
 
     expect(useGameStore.getState().playerChoice).toBe("rock");
-
-    // processRound should not end the game since playerChoice exists
-    useGameStore.getState().processRound();
     expect(useGameStore.getState().phase).toBe("result");
+
+    // advancePhase from result should start next round
+    useGameStore.getState().advancePhase();
+    expect(useGameStore.getState().phase).toBe("rock");
     expect(useGameStore.getState().isPlaying).toBe(true);
+  });
+
+  it("advancePhase is a no-op during idle phase", () => {
+    const store = useGameStore.getState();
+    store.advancePhase();
+    expect(useGameStore.getState().phase).toBe("idle");
   });
 });

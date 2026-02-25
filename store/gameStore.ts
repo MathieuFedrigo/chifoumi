@@ -16,8 +16,7 @@ interface GameState {
   mistakeReason: MistakeReason | null;
   startGame: () => void;
   makeChoice: (choice: Choice) => void;
-  setPhase: (phase: GamePhase) => void;
-  processRound: () => void;
+  advancePhase: () => void;
   endGame: (reason: MistakeReason) => void;
 }
 
@@ -82,24 +81,24 @@ export const useGameStore = create<GameState>()((set, get) => ({
     });
   },
 
-  setPhase: (phase: GamePhase) => {
+  advancePhase: () => {
+    const { phase, playerChoice } = get();
     if (phase === "rock") {
+      set({ phase: "paper" });
+    } else if (phase === "paper") {
+      set({ phase: "scissors" });
+    } else if (phase === "scissors") {
+      if (playerChoice === null) {
+        get().endGame("too_late");
+      }
+    } else if (phase === "result") {
       set((state) => ({
-        phase,
+        phase: "rock",
         score: state.score + 1,
         playerChoice: null,
         aiChoice: null,
         roundResult: null,
       }));
-    } else {
-      set({ phase });
-    }
-  },
-
-  processRound: () => {
-    const { playerChoice } = get();
-    if (playerChoice === null) {
-      get().endGame("too_late");
     }
   },
 

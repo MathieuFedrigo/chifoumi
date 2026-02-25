@@ -11,27 +11,17 @@ export const useGameLoop = () => {
   const phase = useGameStore((s) => s.phase);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || phase === "idle") return;
 
-    let timer: ReturnType<typeof setTimeout>;
+    const duration =
+      phase === "rock" ? ROCK_DURATION :
+      phase === "paper" ? PAPER_DURATION :
+      phase === "scissors" ? SCISSORS_DURATION :
+      RESULT_DURATION;
 
-    if (phase === "rock") {
-      timer = setTimeout(() => {
-        useGameStore.getState().setPhase("paper");
-      }, ROCK_DURATION);
-    } else if (phase === "paper") {
-      timer = setTimeout(() => {
-        useGameStore.getState().setPhase("scissors");
-      }, PAPER_DURATION);
-    } else if (phase === "scissors") {
-      timer = setTimeout(() => {
-        useGameStore.getState().processRound();
-      }, SCISSORS_DURATION);
-    } else if (phase === "result") {
-      timer = setTimeout(() => {
-        useGameStore.getState().setPhase("rock");
-      }, RESULT_DURATION);
-    }
+    const timer = setTimeout(() => {
+      useGameStore.getState().advancePhase();
+    }, duration);
 
     return () => clearTimeout(timer);
   }, [isPlaying, phase]);
