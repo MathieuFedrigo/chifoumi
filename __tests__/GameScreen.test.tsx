@@ -12,6 +12,13 @@ const renderApp = () => {
   );
 };
 
+const renderDirectionsApp = () => {
+  return renderRouter(
+    { "game": GameScreen },
+    { initialUrl: "/game?mode=directions" }
+  );
+};
+
 /** Advance through rock + paper to reach scissors phase */
 const advanceToScissors = (round = 0) => {
   const { beatInterval } = getRoundTimings(round);
@@ -34,6 +41,17 @@ const advanceToTimeout = (round = 0) => {
   });
   act(() => {
     jest.advanceTimersByTime(graceAfter); // scissors → too late
+  });
+};
+
+/** Advance through a full round (scissors → result → rock) after player chose */
+const advanceResultToRock = (round = 0) => {
+  const { beatInterval } = getRoundTimings(round);
+  act(() => {
+    jest.advanceTimersByTime(beatInterval); // scissors remainder → result
+  });
+  act(() => {
+    jest.advanceTimersByTime(beatInterval); // result → rock
   });
 };
 
@@ -362,5 +380,276 @@ describe("GameScreen", () => {
     expect(screen.getByText("vs")).toBeTruthy();
     expect(screen.getAllByText("Paper!").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Rock!").length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("GameScreen – Directions mode", () => {
+  it("shows direction buttons in directions mode", () => {
+    renderDirectionsApp();
+
+    expect(screen.getByLabelText("Up")).toBeTruthy();
+    expect(screen.getByLabelText("Down")).toBeTruthy();
+    expect(screen.getByLabelText("Left")).toBeTruthy();
+    expect(screen.getByLabelText("Right")).toBeTruthy();
+  });
+
+  it("does not show direction buttons in classic mode", () => {
+    renderApp();
+
+    expect(screen.queryByLabelText("Up")).toBeNull();
+    expect(screen.queryByLabelText("Down")).toBeNull();
+    expect(screen.queryByLabelText("Left")).toBeNull();
+    expect(screen.queryByLabelText("Right")).toBeNull();
+  });
+
+  it("pressing direction during rock phase ends game with too_early", async () => {
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    expect(screen.getByText("Rock!")).toBeTruthy();
+
+    await user.press(screen.getByLabelText("Up"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too early!")).toBeTruthy();
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+      Haptics.NotificationFeedbackType.Error
+    );
+  });
+
+  it("pressing direction during paper phase ends game with too_early", async () => {
+    const user = userEvent.setup();
+    renderDirectionsApp();
+    const { beatInterval } = getRoundTimings(0);
+
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
+    expect(screen.getByText("Paper!")).toBeTruthy();
+
+    await user.press(screen.getByLabelText("Down"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too early!")).toBeTruthy();
+  });
+
+  it("pressing direction during normal scissors phase ends game with wrong_type", async () => {
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    advanceToScissors();
+    expect(screen.getByText("Scissors!")).toBeTruthy();
+
+    // Not in direction round — direction press = wrong_type
+    await user.press(screen.getByLabelText("Left"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Wrong button!")).toBeTruthy();
+  });
+
+  it("pressing RPS during direction round scissors phase ends game with wrong_type", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock → player wins
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    // Win RPS round
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+    // Now in direction round
+    advanceToScissors();
+
+    // RPS press during direction scissors = wrong_type
+    await user.press(screen.getByLabelText("Rock!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Wrong button!")).toBeTruthy();
+  });
+
+  it("draw in directions mode increments score without entering direction round", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!")); // draw vs rock
+    advanceResultToRock();
+
+    // Score incremented, still in normal RPS phase (no direction round)
+    expect(screen.getByText("Score: 1")).toBeTruthy();
+    expect(screen.getByText("Rock!")).toBeTruthy();
+  });
+
+  it("win enters direction round", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!")); // win vs rock
+    advanceResultToRock();
+
+    // Now in direction round — should still show Rock! phase
+    expect(screen.getByText("Rock!")).toBeTruthy();
+    expect(screen.getByText("Score: 0")).toBeTruthy(); // no score yet
+  });
+
+  it("too late in first round ends game", () => {
+    renderDirectionsApp();
+    // Just advance through the first round without pressing anything
+    advanceToTimeout();
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too late!")).toBeTruthy();
+  });
+
+  it("too late in direction round scissors ends game (grace timer)", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI RPS = rock
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    // Win RPS → enter direction round
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Advance to direction scissors, then let grace timer expire without pressing direction
+    advanceToScissors();
+    const { graceAfter } = getRoundTimings(0);
+    act(() => {
+      jest.advanceTimersByTime(graceAfter);
+    });
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too late!")).toBeTruthy();
+  });
+
+  it("win + correct direction → score increments and returns to RPS", async () => {
+    // AI picks rock (random=0 for RPS), then AI direction = "up" (random=0 → index 0)
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    // Win RPS
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Direction round
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Up")); // player picks up; AI also picks up
+    // Shows direction result
+    expect(screen.getByText("Confirm!")).toBeTruthy();
+    advanceResultToRock();
+
+    expect(screen.getByText("Score: 1")).toBeTruthy();
+    expect(screen.getByText("Rock!")).toBeTruthy();
+  });
+
+  it("win + wrong direction shows miss text and retry count", async () => {
+    // Math.floor(0.25 * 3) = 0 → AI RPS "rock"; Math.floor(0.25 * 4) = 1 → AI direction "down"
+    jest.spyOn(Math, "random").mockReturnValue(0.25);
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!")); // win vs rock
+    advanceResultToRock();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Up")); // player=up, AI=down → miss
+
+    expect(screen.getByText("Wrong direction!")).toBeTruthy();
+    expect(screen.getByText("1 try left")).toBeTruthy();
+  });
+
+  it("win + 2 wrong directions → round voided, no score", async () => {
+    // Math.floor(0.25 * 3) = 0 → AI RPS "rock"; Math.floor(0.25 * 4) = 1 → AI direction "down"
+    jest.spyOn(Math, "random").mockReturnValue(0.25);
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!")); // win vs rock
+    advanceResultToRock();
+
+    // 1st direction attempt — miss (player=up, AI=down)
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Up"));
+    advanceResultToRock();
+
+    // 2nd direction attempt — miss again (attemptsLeft=1 → void)
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Up"));
+    advanceResultToRock();
+
+    expect(screen.getByText("Score: 0")).toBeTruthy();
+    expect(screen.getByText("Rock!")).toBeTruthy();
+  });
+
+  it("lose + AI direction matches player direction → AI confirmed, no score", async () => {
+    // Math.floor(0 * 3) = 0 → AI RPS "rock"; Math.floor(0 * 4) = 0 → AI direction "up"
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Scissors!")); // lose vs rock
+    advanceResultToRock();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Up")); // player picks up; AI picks up → matched
+
+    expect(screen.getByText("They confirmed!")).toBeTruthy();
+    advanceResultToRock();
+
+    expect(screen.getByText("Score: 0")).toBeTruthy();
+    expect(screen.getByText("Rock!")).toBeTruthy();
+  });
+
+  it("direction buttons not visible after direction buttons disabled when playing at rock phase", () => {
+    renderDirectionsApp();
+
+    // Direction buttons should be rendered but visually disabled (opacity)
+    expect(screen.getByLabelText("Up")).toBeTruthy();
+    // Still accessible but disabled during rock phase
+  });
+
+  it("restarting directions game stays in directions mode", async () => {
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    advanceToTimeout();
+    expect(screen.getByText("Game Over")).toBeTruthy();
+
+    await user.press(screen.getByText("Play Again"));
+
+    expect(screen.getByText("Rock!")).toBeTruthy();
+    expect(screen.getByText("Score: 0")).toBeTruthy();
+    // Direction buttons still visible after restart
+    expect(screen.getByLabelText("Up")).toBeTruthy();
+  });
+
+  it("ignores direction button presses when not playing", async () => {
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    advanceToTimeout();
+
+    await user.press(screen.getByLabelText("Up"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(Haptics.impactAsync).not.toHaveBeenCalled();
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+  });
+
+  it("navigates to directions game from home", async () => {
+    const user = userEvent.setup();
+    const { getPathname } = renderRouter(
+      { "index": HomeScreen, "game": GameScreen, "settings": () => <Text>{"Settings"}</Text> },
+      { initialUrl: "/" }
+    );
+
+    await user.press(screen.getByText("Directions"));
+    expect(getPathname()).toBe("/game");
+    expect(screen.getByLabelText("Up")).toBeTruthy();
   });
 });

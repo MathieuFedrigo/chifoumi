@@ -4,7 +4,10 @@ import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 
-const GAME_MODES = [{ key: "classic", labelKey: "home.classicMode", route: "/game" }] as const;
+const GAME_MODES = [
+  { key: "classic", labelKey: "home.classicMode", route: "/game" },
+  { key: "directions", labelKey: "home.directionsMode", route: "/game?mode=directions" },
+] as const;
 
 export default function HomeScreen() {
   const theme = useTheme();

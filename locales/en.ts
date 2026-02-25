@@ -2,6 +2,7 @@ const en = {
   home: {
     title: "Chifoumi",
     classicMode: "Classic",
+    directionsMode: "Directions",
   },
   game: {
     title: "Chifoumi",
@@ -16,11 +17,23 @@ const en = {
     goHome: "Home",
     tooEarly: "Too early!",
     tooLate: "Too late!",
+    wrongType: "Wrong button!",
     idle: "Press Start",
+    confirmWin: "Confirm!",
+    aiConfirms: "They confirmed!",
+    directionMiss: "Wrong direction!",
+    attemptsLeft_one: "{{count}} try left",
+    attemptsLeft_other: "{{count}} tries left",
     result: {
       win: "You Win!",
       lose: "You Lose!",
       draw: "Draw!",
+    },
+    direction: {
+      up: "Up",
+      down: "Down",
+      left: "Left",
+      right: "Right",
     },
   },
   settings: {

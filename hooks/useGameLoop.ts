@@ -28,9 +28,15 @@ export const useGameLoop = () => {
     const { graceAfter } = getRoundTimings(score);
 
     const timer = setTimeout(() => {
-      const { playerChoice } = useGameStore.getState();
-      if (playerChoice === null) {
-        endGame("too_late");
+      const state = useGameStore.getState();
+      if (state.gameMode === "directions" && state.isDirectionRound) {
+        if (state.playerDirectionChoice === null) {
+          endGame("too_late");
+        }
+      } else {
+        if (state.playerChoice === null) {
+          endGame("too_late");
+        }
       }
     }, graceAfter);
 

@@ -41,11 +41,26 @@ describe("HomeScreen", () => {
     expect(screen.getByText("Classic")).toBeTruthy();
   });
 
+  it("renders Directions mode button", () => {
+    renderHome();
+
+    expect(screen.getByText("Directions")).toBeTruthy();
+  });
+
   it("navigates to game when Classic is pressed", async () => {
     const user = userEvent.setup();
     const { getPathname } = renderHome();
 
     await user.press(screen.getByText("Classic"));
+
+    expect(getPathname()).toBe("/game");
+  });
+
+  it("navigates to game when Directions is pressed", async () => {
+    const user = userEvent.setup();
+    const { getPathname } = renderHome();
+
+    await user.press(screen.getByText("Directions"));
 
     expect(getPathname()).toBe("/game");
   });

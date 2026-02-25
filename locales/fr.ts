@@ -8,6 +8,7 @@ export default {
   home: {
     title: "Chifoumi",
     classicMode: "Classique",
+    directionsMode: "Directions",
   },
   game: {
     title: "Chifoumi",
@@ -22,11 +23,23 @@ export default {
     goHome: "Accueil",
     tooEarly: "Trop tôt !",
     tooLate: "Trop tard !",
+    wrongType: "Mauvais bouton !",
     idle: "Appuyez sur Commencer",
+    confirmWin: "Confirmé !",
+    aiConfirms: "Ils ont confirmé !",
+    directionMiss: "Mauvaise direction !",
+    attemptsLeft_one: "{{count}} essai restant",
+    attemptsLeft_other: "{{count}} essais restants",
     result: {
       win: "Gagné !",
       lose: "Perdu !",
       draw: "Égalité !",
+    },
+    direction: {
+      up: "Haut",
+      down: "Bas",
+      left: "Gauche",
+      right: "Droite",
     },
   },
   settings: {

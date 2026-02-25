@@ -2,13 +2,13 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { FontAwesome5 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { useGameStore, useGameStoreActions } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { useGameLoop } from "@/hooks/useGameLoop";
-import type { Choice } from "@/store/gameStore";
+import type { Choice, Direction, GameMode } from "@/store/gameStore";
 import type { ComponentProps } from "react";
 
 type IconName = ComponentProps<typeof FontAwesome5>["name"];
@@ -19,9 +19,20 @@ const CHOICE_ICONS: Record<Choice, IconName> = {
   scissors: "hand-scissors",
 };
 
+const DIRECTION_ICONS: Record<Direction, IconName> = {
+  up: "arrow-up",
+  down: "arrow-down",
+  left: "arrow-left",
+  right: "arrow-right",
+};
+
+const DIRECTIONS: Direction[] = ["up", "down", "left", "right"];
+
 export default function GameScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
+  const urlMode: GameMode = modeParam === "directions" ? "directions" : "classic";
 
   useGameLoop();
 
@@ -33,10 +44,16 @@ export default function GameScreen() {
   const roundResult = useGameStore((s) => s.roundResult);
   const mistakeReason = useGameStore((s) => s.mistakeReason);
   const phaseStartedAt = useGameStore((s) => s.phaseStartedAt);
-  const { startGame, makeChoice } = useGameStoreActions();
+  const gameMode = useGameStore((s) => s.gameMode);
+  const isDirectionRound = useGameStore((s) => s.isDirectionRound);
+  const pendingRpsResult = useGameStore((s) => s.pendingRpsResult);
+  const directionAiChoice = useGameStore((s) => s.directionAiChoice);
+  const playerDirectionChoice = useGameStore((s) => s.playerDirectionChoice);
+  const directionAttemptsLeft = useGameStore((s) => s.directionAttemptsLeft);
+  const { startGame, makeChoice, makeDirectionChoice } = useGameStoreActions();
 
   useEffect(() => {
-    startGame();
+    startGame(urlMode);
   }, []);
 
   const phaseBackground =
@@ -59,6 +76,20 @@ export default function GameScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     makeChoice(choice);
+  };
+
+  const handleDirectionChoice = (dir: Direction) => {
+    if (!isPlaying) return;
+    const elapsed = Date.now() - phaseStartedAt;
+    const timings = getRoundTimings(score);
+    const inGracePeriod = phase === "paper" && elapsed >= timings.beatInterval - timings.graceBefore;
+    const isValidTiming = (phase === "scissors" || inGracePeriod) && isDirectionRound;
+    if (isValidTiming) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    makeDirectionChoice(dir);
   };
 
   const phaseText =
@@ -84,11 +115,29 @@ export default function GameScreen() {
       ? t("game.tooEarly")
       : mistakeReason === "too_late"
         ? t("game.tooLate")
-        : "";
+        : mistakeReason === "wrong_type"
+          ? t("game.wrongType")
+          : "";
 
-  const showResult = phase === "result" || (phase === "scissors" && !!playerChoice);
-  const buttonsDisabled = (phase !== "scissors" || !!playerChoice) && isPlaying;
+  const directionResultText = (() => {
+    if (!playerDirectionChoice || !directionAiChoice) return "";
+    const matched = playerDirectionChoice === directionAiChoice;
+    if (matched) {
+      return pendingRpsResult === "win" ? t("game.confirmWin") : t("game.aiConfirms");
+    }
+    return t("game.directionMiss");
+  })();
+
+  const showRpsResult = !isDirectionRound && (phase === "result" || (phase === "scissors" && !!playerChoice));
+  const showDirectionResult =
+    isDirectionRound && (phase === "result" || (phase === "scissors" && !!playerDirectionChoice));
+  const showResult = showRpsResult || showDirectionResult;
+
+  const rpsButtonsDisabled = (phase !== "scissors" || !!playerChoice || isDirectionRound) && isPlaying;
+  const directionButtonsDisabled = (phase !== "scissors" || !!playerDirectionChoice) && isPlaying;
   const isGameOver = !isPlaying && !!mistakeReason;
+
+  const attemptsRemaining = directionAttemptsLeft - 1;
 
   return (
     <View style={[styles.container, { backgroundColor: phaseBackground }]}>
@@ -111,7 +160,58 @@ export default function GameScreen() {
       </View>
 
       <View style={styles.center}>
-        {showResult ? (
+        {showDirectionResult ? (
+          <View style={styles.resultContainer}>
+            <Text style={[styles.resultText, { color: theme.colors.text }]}>
+              {directionResultText}
+            </Text>
+            {playerDirectionChoice && directionAiChoice && (
+              <View style={styles.choiceRow}>
+                <View style={styles.choiceDisplay}>
+                  <FontAwesome5
+                    name={DIRECTION_ICONS[playerDirectionChoice]}
+                    size={48}
+                    color={theme.colors.text}
+                  />
+                  <Text style={[styles.choiceLabel, { color: theme.colors.textSecondary }]}>
+                    {t(
+                      `game.direction.${playerDirectionChoice}` as
+                        | "game.direction.up"
+                        | "game.direction.down"
+                        | "game.direction.left"
+                        | "game.direction.right"
+                    )}
+                  </Text>
+                </View>
+                <Text style={[styles.vs, { color: theme.colors.textTertiary }]}>
+                  {/* eslint-disable-next-line i18next/no-literal-string */}
+                  {"vs"}
+                </Text>
+                <View style={styles.choiceDisplay}>
+                  <FontAwesome5
+                    name={DIRECTION_ICONS[directionAiChoice]}
+                    size={48}
+                    color={theme.colors.text}
+                  />
+                  <Text style={[styles.choiceLabel, { color: theme.colors.textSecondary }]}>
+                    {t(
+                      `game.direction.${directionAiChoice}` as
+                        | "game.direction.up"
+                        | "game.direction.down"
+                        | "game.direction.left"
+                        | "game.direction.right"
+                    )}
+                  </Text>
+                </View>
+              </View>
+            )}
+            {playerDirectionChoice !== directionAiChoice && attemptsRemaining > 0 && (
+              <Text style={[styles.attemptsText, { color: theme.colors.textSecondary }]}>
+                {t("game.attemptsLeft", { count: attemptsRemaining })}
+              </Text>
+            )}
+          </View>
+        ) : showRpsResult ? (
           <View style={styles.resultContainer}>
             <Text style={[styles.resultText, { color: theme.colors.text }]}>
               {resultText}
@@ -162,7 +262,7 @@ export default function GameScreen() {
             </Text>
             <Pressable
               style={[styles.actionButton, { backgroundColor: theme.colors.button }]}
-              onPress={startGame}
+              onPress={() => startGame(urlMode)}
               accessibilityRole="button"
               accessibilityLabel={t("game.restart")}
             >
@@ -174,6 +274,39 @@ export default function GameScreen() {
         ) : null}
       </View>
 
+      {gameMode === "directions" && (
+        <View style={styles.directionButtons}>
+          {DIRECTIONS.map((dir) => (
+            <Pressable
+              key={dir}
+              style={[
+                styles.choiceButton,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  opacity: directionButtonsDisabled ? 0.4 : 1,
+                },
+              ]}
+              onPress={() => handleDirectionChoice(dir)}
+              accessibilityRole="button"
+              accessibilityLabel={t(
+                `game.direction.${dir}` as
+                  | "game.direction.up"
+                  | "game.direction.down"
+                  | "game.direction.left"
+                  | "game.direction.right"
+              )}
+            >
+              <FontAwesome5
+                name={DIRECTION_ICONS[dir]}
+                size={32}
+                color={theme.colors.text}
+              />
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       <View style={styles.choiceButtons}>
         {/* eslint-disable-next-line i18next/no-literal-string */}
         {(["rock", "paper", "scissors"] as const).map((choice) => (
@@ -184,7 +317,7 @@ export default function GameScreen() {
               {
                 backgroundColor: theme.colors.surface,
                 borderColor: theme.colors.border,
-                opacity: buttonsDisabled ? 0.4 : 1,
+                opacity: rpsButtonsDisabled ? 0.4 : 1,
               },
             ]}
             onPress={() => handleChoice(choice)}
@@ -258,6 +391,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
+  attemptsText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
   gameOver: {
     alignItems: "center",
     gap: 12,
@@ -282,6 +419,12 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 24,
     fontWeight: "700",
+  },
+  directionButtons: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 16,
+    marginBottom: 12,
   },
   choiceButtons: {
     flexDirection: "row",
