@@ -17,7 +17,7 @@ export interface RoundTimings {
 }
 
 export const DEFAULT_DIFFICULTY_CONFIG: DifficultyConfig = {
-  beat: { initial: 800, floor: 400, decayRate: 0.08 },
+  beat: { initial: 800, floor: 200, decayRate: 0.08 },
   graceBeforeRatio: 0.1875,
   graceAfterRatio: 0.5,
 };

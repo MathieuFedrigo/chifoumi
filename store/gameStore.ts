@@ -74,7 +74,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
     },
 
     makeChoice: (choice: Choice) => {
-      const { phase, score, phaseStartedAt } = get();
+      const { phase, score, phaseStartedAt, playerChoice } = get();
       if (phase === "rock") {
         get().actions.endGame("too_early");
         return;
@@ -97,25 +97,26 @@ export const useGameStore = create<GameState>()((set, get) => ({
         }
         return;
       }
-      if (phase !== "scissors") return;
+      if (phase !== "scissors" || playerChoice !== null) return;
       const ai = getRandomChoice();
-      const result = determineResult(choice, ai);
       set({
         playerChoice: choice,
         aiChoice: ai,
-        roundResult: result,
-        phase: "result",
+        roundResult: determineResult(choice, ai),
       });
+      // phase stays "scissors" — beat timer will advance to result naturally
     },
 
     advancePhase: () => {
-      const { phase, playerChoice } = get();
+      const { phase } = get();
       if (phase === "rock") {
         set({ phase: "paper", phaseStartedAt: Date.now() });
       } else if (phase === "paper") {
         set({ phase: "scissors", phaseStartedAt: Date.now() });
       } else if (phase === "scissors") {
-        if (playerChoice === null) {
+        if (get().playerChoice !== null) {
+          set({ phase: "result", phaseStartedAt: Date.now() });
+        } else {
           get().actions.endGame("too_late");
         }
       } else if (phase === "result") {

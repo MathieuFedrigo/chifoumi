@@ -39,14 +39,15 @@ describe("useGameStore edge cases", () => {
   });
 
   it("makeChoice is a no-op during result phase", () => {
-    // Setup: start game, advance to scissors, make a choice to enter result
+    // Setup: start game, advance to scissors, make a choice, advance to result
     jest.spyOn(Math, "random").mockReturnValue(0);
     const { startGame, advancePhase, makeChoice } = useGameStore.getState().actions;
     startGame();
     advancePhase(); // rock → paper
     advancePhase(); // paper → scissors
-    makeChoice("rock"); // enters result phase
-
+    makeChoice("rock"); // stores choices, phase stays scissors
+    expect(useGameStore.getState().phase).toBe("scissors");
+    advancePhase(); // scissors + playerChoice → result
     expect(useGameStore.getState().phase).toBe("result");
 
     // Now try makeChoice during result - should be no-op
@@ -54,18 +55,22 @@ describe("useGameStore edge cases", () => {
     expect(useGameStore.getState().phase).toBe("result");
   });
 
-  it("advancePhase from scissors is a no-op when playerChoice is set", () => {
+  it("advancePhase from scissors with playerChoice transitions to result then next round", () => {
     jest.spyOn(Math, "random").mockReturnValue(0);
     const { startGame, advancePhase, makeChoice } = useGameStore.getState().actions;
     startGame();
     advancePhase(); // rock → paper
     advancePhase(); // paper → scissors
-    makeChoice("rock"); // sets playerChoice, enters result
+    makeChoice("rock"); // sets playerChoice, phase stays scissors
 
     expect(useGameStore.getState().playerChoice).toBe("rock");
+    expect(useGameStore.getState().phase).toBe("scissors");
+
+    // advancePhase during scissors with playerChoice → result
+    useGameStore.getState().actions.advancePhase();
     expect(useGameStore.getState().phase).toBe("result");
 
-    // advancePhase from result should start next round
+    // advancePhase from result → rock (score+1)
     useGameStore.getState().actions.advancePhase();
     expect(useGameStore.getState().phase).toBe("rock");
     expect(useGameStore.getState().isPlaying).toBe(true);
@@ -77,17 +82,18 @@ describe("useGameStore edge cases", () => {
     expect(useGameStore.getState().phase).toBe("idle");
   });
 
-  it("advancePhase from scissors is a no-op when playerChoice is already set (defensive edge case)", () => {
-    // This tests the unreachable else branch: scissors phase + playerChoice already set.
-    // Normally makeChoice() transitions to result before advancePhase can fire here,
-    // but we verify the guard holds via direct state setup.
+  it("advancePhase from scissors with no playerChoice ends game as too_late (safety net)", () => {
+    // Safety net: if beat timer fires during scissors before the player chose,
+    // advancePhase ends the game as too_late (grace timer normally fires first).
     const { startGame, advancePhase } = useGameStore.getState().actions;
     startGame();
     advancePhase(); // rock → paper
     advancePhase(); // paper → scissors
-    useGameStore.setState({ playerChoice: "rock" });
 
-    advancePhase(); // scissors + playerChoice set → no-op (false branch of playerChoice === null)
-    expect(useGameStore.getState().phase).toBe("scissors");
+    // No makeChoice — playerChoice is null
+    advancePhase(); // scissors + null playerChoice → endGame("too_late")
+    expect(useGameStore.getState().phase).toBe("idle");
+    expect(useGameStore.getState().isPlaying).toBe(false);
+    expect(useGameStore.getState().mistakeReason).toBe("too_late");
   });
 });

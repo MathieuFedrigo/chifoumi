@@ -86,7 +86,8 @@ export default function GameScreen() {
         ? t("game.tooLate")
         : "";
 
-  const buttonsDisabled = phase !== "scissors" && isPlaying;
+  const showResult = phase === "result" || (phase === "scissors" && !!playerChoice);
+  const buttonsDisabled = (phase !== "scissors" || !!playerChoice) && isPlaying;
   const isGameOver = !isPlaying && !!mistakeReason;
 
   return (
@@ -110,7 +111,7 @@ export default function GameScreen() {
       </View>
 
       <View style={styles.center}>
-        {phase === "result" ? (
+        {showResult ? (
           <View style={styles.resultContainer}>
             <Text style={[styles.resultText, { color: theme.colors.text }]}>
               {resultText}

@@ -234,6 +234,28 @@ describe("GameScreen", () => {
     expect(screen.getByText("Draw!")).toBeTruthy();
   });
 
+  it("grace deadline is harmless after player already chose", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+
+    const user = userEvent.setup();
+    renderApp();
+
+    advanceToScissors();
+
+    // Player picks paper during scissors
+    await user.press(screen.getByLabelText("Paper!"));
+    expect(screen.getByText("You Win!")).toBeTruthy();
+
+    // Advance past graceAfter — grace deadline should not end the game
+    const { graceAfter } = getRoundTimings(0);
+    act(() => {
+      jest.advanceTimersByTime(graceAfter);
+    });
+
+    // Still showing result, not game over
+    expect(screen.getByText("You Win!")).toBeTruthy();
+  });
+
   it("increments score and starts next round after result phase", async () => {
     jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
 
@@ -247,10 +269,12 @@ describe("GameScreen", () => {
     expect(screen.getByText("You Win!")).toBeTruthy();
     expect(screen.getByText("Score: 0")).toBeTruthy();
 
-    // Result phase uses round 0 beatInterval
     const { beatInterval } = getRoundTimings(0);
     act(() => {
-      jest.advanceTimersByTime(beatInterval);
+      jest.advanceTimersByTime(beatInterval); // scissors remainder → result
+    });
+    act(() => {
+      jest.advanceTimersByTime(beatInterval); // result → rock
     });
 
     expect(screen.getByText("Rock!")).toBeTruthy();
@@ -267,6 +291,9 @@ describe("GameScreen", () => {
     advanceToScissors();
     await user.press(screen.getByLabelText("Paper!"));
     const t0 = getRoundTimings(0);
+    act(() => {
+      jest.advanceTimersByTime(t0.beatInterval); // scissors remainder → result
+    });
     act(() => {
       jest.advanceTimersByTime(t0.beatInterval); // result → next round
     });

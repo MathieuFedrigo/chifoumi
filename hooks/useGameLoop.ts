@@ -6,19 +6,34 @@ export const useGameLoop = () => {
   const isPlaying = useGameStore((s) => s.isPlaying);
   const phase = useGameStore((s) => s.phase);
   const score = useGameStore((s) => s.score);
-  const { advancePhase } = useGameStoreActions();
+  const { advancePhase, endGame } = useGameStoreActions();
 
+  // Main beat timer — all phases use beatInterval
   useEffect(() => {
     if (!isPlaying || phase === "idle") return;
 
-    const timings = getRoundTimings(score);
-    const duration =
-      phase === "scissors" ? timings.graceAfter : timings.beatInterval;
+    const { beatInterval } = getRoundTimings(score);
 
     const timer = setTimeout(() => {
       advancePhase();
-    }, duration);
+    }, beatInterval);
 
     return () => clearTimeout(timer);
   }, [isPlaying, phase, score, advancePhase]);
+
+  // Grace deadline timer — only during scissors phase
+  useEffect(() => {
+    if (!isPlaying || phase !== "scissors") return;
+
+    const { graceAfter } = getRoundTimings(score);
+
+    const timer = setTimeout(() => {
+      const { playerChoice } = useGameStore.getState();
+      if (playerChoice === null) {
+        endGame("too_late");
+      }
+    }, graceAfter);
+
+    return () => clearTimeout(timer);
+  }, [isPlaying, phase, score, endGame]);
 };
