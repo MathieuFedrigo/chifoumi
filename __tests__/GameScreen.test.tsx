@@ -327,6 +327,28 @@ describe("GameScreen", () => {
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
   });
 
+  it("grace-before press plays full scissors beat before advancing to result", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+
+    const user = userEvent.setup();
+    renderApp();
+    const { beatInterval, graceBefore } = getRoundTimings(0);
+
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
+    act(() => { jest.advanceTimersByTime(beatInterval - graceBefore); }); // into grace
+    expect(screen.getByText("Paper!")).toBeTruthy();
+
+    await user.press(screen.getByLabelText("Paper!")); // wins vs rock
+    expect(screen.getByText("You Win!")).toBeTruthy(); // overlay immediate
+
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // scissors beat → result
+    expect(screen.getByText("You Win!")).toBeTruthy(); // still in result, not rock yet
+
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // result → rock
+    expect(screen.getByText("Rock!")).toBeTruthy();
+    expect(screen.getByText("Score: 1")).toBeTruthy();
+  });
+
   it("shows player and AI choice icons in result phase", async () => {
     jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
 

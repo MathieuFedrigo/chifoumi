@@ -92,7 +92,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
             playerChoice: choice,
             aiChoice: ai,
             roundResult: result,
-            phase: "result",
+            phase: "scissors",
+            phaseStartedAt: Date.now(),
           });
         }
         return;
