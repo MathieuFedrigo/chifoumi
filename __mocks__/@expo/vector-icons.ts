@@ -14,3 +14,7 @@ export const MaterialIcons = ({ name, size, color }: IconProps) => {
 export const Ionicons = ({ name, size, color }: IconProps) => {
   return React.createElement(Text, { style: { fontSize: size, color } }, name);
 };
+
+export const MaterialCommunityIcons = ({ name, size, color }: IconProps) => {
+  return React.createElement(Text, { style: { fontSize: size, color } }, name);
+};

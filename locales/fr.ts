@@ -5,5 +5,23 @@ type DeepString<T> = {
 };
 
 export default {
-  example: { hello: "Bonjour" },
+  game: {
+    title: "Chifoumi",
+    score: "Score : {{count}}",
+    start: "Commencer",
+    rock: "Pierre !",
+    paper: "Papier !",
+    scissors: "Ciseaux !",
+    gameOver: "Partie terminée",
+    finalScore: "Score final : {{count}}",
+    restart: "Rejouer",
+    tooEarly: "Trop tôt !",
+    tooLate: "Trop tard !",
+    idle: "Appuyez sur Commencer",
+    result: {
+      win: "Gagné !",
+      lose: "Perdu !",
+      draw: "Égalité !",
+    },
+  },
 } satisfies DeepString<typeof en>;
