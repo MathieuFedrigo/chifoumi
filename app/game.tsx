@@ -95,7 +95,7 @@ export default function GameScreen() {
     <View style={[styles.container, { backgroundColor: phaseBackground }]}>
       <View style={styles.topBar}>
         <Pressable
-          onPress={() => router.replace("/")}
+          onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel={t("game.goHome")}
         >

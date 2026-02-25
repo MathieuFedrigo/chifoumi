@@ -1,4 +1,6 @@
 import { renderRouter, screen, userEvent, act } from "expo-router/testing-library";
+import { Text } from "react-native";
+import HomeScreen from "@/app/index";
 import GameScreen from "@/app/game";
 import * as Haptics from "expo-haptics";
 
@@ -83,7 +85,13 @@ describe("GameScreen", () => {
 
   it("navigates home when pressing the back arrow", async () => {
     const user = userEvent.setup();
-    const { getPathname } = renderApp();
+    const { getPathname } = renderRouter(
+      { "index": HomeScreen, "game": GameScreen, "settings": () => <Text>{"Settings"}</Text> },
+      { initialUrl: "/" }
+    );
+
+    await user.press(screen.getByText("Classic"));
+    expect(getPathname()).toBe("/game");
 
     await user.press(screen.getByLabelText("Home"));
 
