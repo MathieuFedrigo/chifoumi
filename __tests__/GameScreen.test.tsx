@@ -77,8 +77,16 @@ describe("GameScreen", () => {
     expect(screen.getByText("Play Again")).toBeTruthy();
   });
 
-  it("shows back arrow at top-left", () => {
+  it("hides back arrow during gameplay", () => {
     renderApp();
+
+    expect(screen.queryByLabelText("Home")).toBeNull();
+  });
+
+  it("shows back arrow after game over", () => {
+    renderApp();
+
+    advanceToTimeout();
 
     expect(screen.getByLabelText("Home")).toBeTruthy();
   });
@@ -92,6 +100,8 @@ describe("GameScreen", () => {
 
     await user.press(screen.getByText("Classic"));
     expect(getPathname()).toBe("/game");
+
+    advanceToTimeout();
 
     await user.press(screen.getByLabelText("Home"));
 

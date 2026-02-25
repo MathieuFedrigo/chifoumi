@@ -90,17 +90,22 @@ export default function GameScreen() {
         : "";
 
   const buttonsDisabled = phase !== "scissors" && isPlaying;
+  const isGameOver = !isPlaying && !!mistakeReason;
 
   return (
     <View style={[styles.container, { backgroundColor: phaseBackground }]}>
       <View style={styles.topBar}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t("game.goHome")}
-        >
-          <FontAwesome5 name="arrow-left" size={20} color={theme.colors.text} />
-        </Pressable>
+        {isGameOver ? (
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t("game.goHome")}
+          >
+            <FontAwesome5 name="arrow-left" size={20} color={theme.colors.text} />
+          </Pressable>
+        ) : (
+          <View style={styles.topBarSpacer} />
+        )}
         <Text style={[styles.score, { color: theme.colors.text }]}>
           {t("game.score", { count: score })}
         </Text>
