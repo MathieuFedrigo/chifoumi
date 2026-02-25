@@ -22,7 +22,8 @@ const HomeStub = () => <Text>{"Home"}</Text>;
 
 const renderLayout = (initialUrl = "/") =>
   renderRouter(
-    { "_layout": RootLayout, "(tabs)/index": HomeStub },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { "_layout": RootLayout as any, "(tabs)/index": HomeStub },
     { initialUrl }
   );
 
