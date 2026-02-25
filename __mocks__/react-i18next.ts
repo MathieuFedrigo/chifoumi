@@ -1,20 +1,29 @@
 import en from "@/locales/en";
 
-function resolve(obj: Record<string, unknown>, key: string): string {
+function resolveKey(obj: Record<string, unknown>, key: string): string | undefined {
   const parts = key.split(".");
   let cur: unknown = obj;
   for (const part of parts) cur = (cur as Record<string, unknown>)?.[part];
-  if (typeof cur === "string") return cur;
-  // Plural fallback: try key + "_other"
-  const otherKey = key + "_other";
-  const parts2 = otherKey.split(".");
-  let cur2: unknown = obj;
-  for (const part of parts2) cur2 = (cur2 as Record<string, unknown>)?.[part];
-  return typeof cur2 === "string" ? cur2 : key;
+  return typeof cur === "string" ? cur : undefined;
+}
+
+function resolve(obj: Record<string, unknown>, key: string, count?: number): string {
+  // Try plural form first when count is provided
+  if (count !== undefined) {
+    const pluralSuffix = count === 1 ? "_one" : "_other";
+    const pluralResult = resolveKey(obj, key + pluralSuffix);
+    if (pluralResult !== undefined) return pluralResult;
+  }
+  const direct = resolveKey(obj, key);
+  if (direct !== undefined) return direct;
+  // Fallback to _other
+  const otherResult = resolveKey(obj, key + "_other");
+  return otherResult ?? key;
 }
 
 const t = (key: string, vars?: Record<string, unknown>) => {
-  let str = resolve(en as unknown as Record<string, unknown>, key);
+  const count = typeof vars?.count === "number" ? vars.count : undefined;
+  let str = resolve(en as unknown as Record<string, unknown>, key, count);
   if (vars) str = str.replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? `{{${k}}}`));
   return str;
 };
