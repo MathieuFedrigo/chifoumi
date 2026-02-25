@@ -1,8 +1,10 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, FlatList } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
+
+const GAME_MODES = [{ key: "classic", labelKey: "home.classicMode", route: "/game" }] as const;
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -27,18 +29,23 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.modes}>
-        <Pressable
-          style={[styles.modeCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-          onPress={() => router.push("/game")}
-          accessibilityRole="button"
-          accessibilityLabel={t("home.classicMode")}
-        >
-          <Text style={[styles.modeText, { color: theme.colors.text }]}>
-            {t("home.classicMode")}
-          </Text>
-        </Pressable>
-      </View>
+      <FlatList
+        data={GAME_MODES}
+        keyExtractor={(item) => item.key}
+        contentContainerStyle={styles.modes}
+        renderItem={({ item }) => (
+          <Pressable
+            style={[styles.modeCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+            onPress={() => router.push(item.route)}
+            accessibilityRole="button"
+            accessibilityLabel={t(item.labelKey)}
+          >
+            <Text style={[styles.modeText, { color: theme.colors.text }]}>
+              {t(item.labelKey)}
+            </Text>
+          </Pressable>
+        )}
+      />
     </View>
   );
 }
@@ -60,9 +67,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   modes: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    paddingTop: 8,
   },
   modeCard: {
     width: "100%",
