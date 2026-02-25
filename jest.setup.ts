@@ -12,11 +12,6 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   default: jest.fn(() => "light"),
 }));
 
-// Mock useWindowDimensions for orientation tests (portrait by default)
-jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
-  default: jest.fn(() => ({ width: 375, height: 812 })),
-}));
-
 // Mock useReducedMotion wrapper as a controllable jest.fn
 jest.mock("@/hooks/useReducedMotion", () => ({
   useReducedMotion: jest.fn(() => false),

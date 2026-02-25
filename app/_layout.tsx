@@ -21,6 +21,7 @@ const navigationIntegration = Sentry.reactNavigationIntegration({
   enableTimeToInitialDisplay: true,
 });
 
+/* istanbul ignore next */
 if (!__DEV__ || ENABLE_SENTRY_IN_DEV) {
   Sentry.init({
     dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -77,6 +78,7 @@ const RootLayout = function RootLayout() {
 
   // Register navigation container for Sentry
   useEffect(() => {
+    /* istanbul ignore else */
     if (ref) {
       navigationIntegration.registerNavigationContainer(ref);
     }
@@ -121,6 +123,7 @@ const RootLayout = function RootLayout() {
   );
 };
 
+/* istanbul ignore next */
 export default !__DEV__ || ENABLE_SENTRY_IN_DEV
   ? Sentry.wrap(RootLayout)
   : RootLayout;

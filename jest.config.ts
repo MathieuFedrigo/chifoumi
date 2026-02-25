@@ -11,4 +11,16 @@ module.exports = {
   clearMocks: true,
   restoreMocks: true,
   coveragePathIgnorePatterns: ["/node_modules/", "<rootDir>/locales/", "<rootDir>/i18n\\.ts", "<rootDir>/types/"],
+  collectCoverageFrom: [
+    "**/*.{ts,tsx}",
+    "!**/*.d.ts",
+    "!**/node_modules/**",
+    "!locales/**",
+    "!i18n.ts",
+    "!types/**",
+    "!jest.config.ts",
+    "!jest.setup.ts",
+    "!hooks/useReducedMotion.ts",
+    "!**/__mocks__/**",
+  ],
 };

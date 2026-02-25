@@ -76,4 +76,18 @@ describe("useGameStore edge cases", () => {
     advancePhase();
     expect(useGameStore.getState().phase).toBe("idle");
   });
+
+  it("advancePhase from scissors is a no-op when playerChoice is already set (defensive edge case)", () => {
+    // This tests the unreachable else branch: scissors phase + playerChoice already set.
+    // Normally makeChoice() transitions to result before advancePhase can fire here,
+    // but we verify the guard holds via direct state setup.
+    const { startGame, advancePhase } = useGameStore.getState().actions;
+    startGame();
+    advancePhase(); // rock → paper
+    advancePhase(); // paper → scissors
+    useGameStore.setState({ playerChoice: "rock" });
+
+    advancePhase(); // scissors + playerChoice set → no-op (false branch of playerChoice === null)
+    expect(useGameStore.getState().phase).toBe("scissors");
+  });
 });

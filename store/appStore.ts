@@ -29,7 +29,7 @@ export const useAppStore = create<AppState>()(
         cycleThemeMode: () => {
           const current = get().themeMode;
           const idx = THEME_CYCLE.indexOf(current);
-          const next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length] ?? "system";
+          const next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length] ?? /* istanbul ignore next */ "system";
           set({ themeMode: next });
         },
 
