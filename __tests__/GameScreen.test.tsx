@@ -19,7 +19,7 @@ const advanceToScissors = () => {
   });
 };
 
-/** Advance through rock(800) + paper(800) + scissors(1200) = timeout */
+/** Advance through rock(800) + paper(800) + scissors(800) = timeout */
 const advanceToTimeout = () => {
   act(() => {
     jest.advanceTimersByTime(800); // rock → paper
@@ -28,7 +28,7 @@ const advanceToTimeout = () => {
     jest.advanceTimersByTime(800); // paper → scissors
   });
   act(() => {
-    jest.advanceTimersByTime(1200); // scissors → too late
+    jest.advanceTimersByTime(800); // scissors → too late
   });
 };
 
@@ -119,6 +119,51 @@ describe("GameScreen", () => {
 
     expect(screen.getByText("Game Over")).toBeTruthy();
     expect(screen.getByText("Too early!")).toBeTruthy();
+  });
+
+  it("ends game with 'too early' when pressing 400ms into paper phase", async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.press(screen.getByText("Start"));
+
+    act(() => {
+      jest.advanceTimersByTime(800); // rock → paper
+    });
+    act(() => {
+      jest.advanceTimersByTime(400); // 400ms into paper (< 650ms grace threshold)
+    });
+    expect(screen.getByText("Paper!")).toBeTruthy();
+
+    await user.press(screen.getByLabelText("Scissors!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too early!")).toBeTruthy();
+  });
+
+  it("accepts input during grace period (650ms into paper phase)", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.press(screen.getByText("Start"));
+
+    act(() => {
+      jest.advanceTimersByTime(800); // rock → paper
+    });
+    act(() => {
+      jest.advanceTimersByTime(650); // 650ms into paper (>= 650ms grace threshold)
+    });
+    expect(screen.getByText("Paper!")).toBeTruthy();
+
+    // Player picks paper (beats rock) during grace period
+    await user.press(screen.getByLabelText("Paper!"));
+
+    expect(screen.getByText("You Win!")).toBeTruthy();
+    expect(Haptics.impactAsync).toHaveBeenCalledWith(
+      Haptics.ImpactFeedbackStyle.Light
+    );
   });
 
   it("shows win result when player wins during scissors phase", async () => {

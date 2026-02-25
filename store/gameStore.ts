@@ -6,6 +6,12 @@ export type GamePhase = "idle" | "rock" | "paper" | "scissors" | "result";
 export type RoundResult = "win" | "lose" | "draw";
 export type MistakeReason = "too_early" | "too_late";
 
+export const ROCK_DURATION = 800;
+export const PAPER_DURATION = 800;
+export const SCISSORS_DURATION = 800;
+export const RESULT_DURATION = 1000;
+export const INPUT_GRACE_BEFORE_SCISSORS = 150;
+
 interface GameActions {
   startGame: () => void;
   makeChoice: (choice: Choice) => void;
@@ -21,6 +27,7 @@ interface GameState {
   aiChoice: Choice | null;
   roundResult: RoundResult | null;
   mistakeReason: MistakeReason | null;
+  phaseStartedAt: number;
   actions: GameActions;
 }
 
@@ -50,6 +57,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   aiChoice: null,
   roundResult: null,
   mistakeReason: null,
+  phaseStartedAt: Date.now(),
 
   actions: {
     startGame: () => {
@@ -66,13 +74,31 @@ export const useGameStore = create<GameState>()((set, get) => ({
         aiChoice: null,
         roundResult: null,
         mistakeReason: null,
+        phaseStartedAt: Date.now(),
       });
     },
 
     makeChoice: (choice: Choice) => {
-      const { phase } = get();
-      if (phase === "rock" || phase === "paper") {
+      const { phase, phaseStartedAt } = get();
+      if (phase === "rock") {
         get().actions.endGame("too_early");
+        return;
+      }
+      if (phase === "paper") {
+        const elapsed = Date.now() - phaseStartedAt;
+        if (elapsed < PAPER_DURATION - INPUT_GRACE_BEFORE_SCISSORS) {
+          get().actions.endGame("too_early");
+        } else {
+          // grace period — treat as valid scissors input
+          const ai = getRandomChoice();
+          const result = determineResult(choice, ai);
+          set({
+            playerChoice: choice,
+            aiChoice: ai,
+            roundResult: result,
+            phase: "result",
+          });
+        }
         return;
       }
       if (phase !== "scissors") return;
@@ -89,9 +115,9 @@ export const useGameStore = create<GameState>()((set, get) => ({
     advancePhase: () => {
       const { phase, playerChoice } = get();
       if (phase === "rock") {
-        set({ phase: "paper" });
+        set({ phase: "paper", phaseStartedAt: Date.now() });
       } else if (phase === "paper") {
-        set({ phase: "scissors" });
+        set({ phase: "scissors", phaseStartedAt: Date.now() });
       } else if (phase === "scissors") {
         if (playerChoice === null) {
           get().actions.endGame("too_late");
@@ -103,6 +129,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
           playerChoice: null,
           aiChoice: null,
           roundResult: null,
+          phaseStartedAt: Date.now(),
         }));
       }
     },
@@ -118,6 +145,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         isPlaying: false,
         phase: "idle",
         mistakeReason: reason,
+        phaseStartedAt: Date.now(),
       });
     },
   },

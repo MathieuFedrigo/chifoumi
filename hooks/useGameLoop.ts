@@ -1,10 +1,12 @@
 import { useEffect } from "react";
-import { useGameStore, useGameStoreActions } from "@/store/gameStore";
-
-const ROCK_DURATION = 800;
-const PAPER_DURATION = 800;
-const SCISSORS_DURATION = 1200;
-const RESULT_DURATION = 1000;
+import {
+  useGameStore,
+  useGameStoreActions,
+  ROCK_DURATION,
+  PAPER_DURATION,
+  SCISSORS_DURATION,
+  RESULT_DURATION,
+} from "@/store/gameStore";
 
 export const useGameLoop = () => {
   const isPlaying = useGameStore((s) => s.isPlaying);

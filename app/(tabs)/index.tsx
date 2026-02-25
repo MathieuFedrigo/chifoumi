@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 import { FontAwesome5 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@/hooks/useTheme";
-import { useGameStore, useGameStoreActions } from "@/store/gameStore";
+import {
+  useGameStore,
+  useGameStoreActions,
+  PAPER_DURATION,
+  INPUT_GRACE_BEFORE_SCISSORS,
+} from "@/store/gameStore";
 import { useGameLoop } from "@/hooks/useGameLoop";
 import type { Choice } from "@/store/gameStore";
 import type { ComponentProps } from "react";
@@ -29,6 +34,7 @@ export default function GameScreen() {
   const aiChoice = useGameStore((s) => s.aiChoice);
   const roundResult = useGameStore((s) => s.roundResult);
   const mistakeReason = useGameStore((s) => s.mistakeReason);
+  const phaseStartedAt = useGameStore((s) => s.phaseStartedAt);
   const { startGame, makeChoice } = useGameStoreActions();
 
   const phaseBackground =
@@ -42,7 +48,9 @@ export default function GameScreen() {
 
   const handleChoice = (choice: Choice) => {
     if (!isPlaying) return;
-    if (phase === "scissors") {
+    const elapsed = Date.now() - phaseStartedAt;
+    const inGracePeriod = phase === "paper" && elapsed >= PAPER_DURATION - INPUT_GRACE_BEFORE_SCISSORS;
+    if (phase === "scissors" || inGracePeriod) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
