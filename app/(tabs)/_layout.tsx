@@ -1,4 +1,5 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
+import { Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "react-i18next";
@@ -27,6 +28,20 @@ export default function TabLayout() {
               size={size}
               color={color}
             />
+          ),
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push("/settings")}
+              accessibilityRole="button"
+              accessibilityLabel={t("settings.title")}
+              style={{ marginRight: 12 }}
+            >
+              <MaterialCommunityIcons
+                name="cog"
+                size={24}
+                color={theme.colors.text}
+              />
+            </Pressable>
           ),
         }}
       />

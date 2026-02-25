@@ -11,6 +11,7 @@ import { useColorScheme } from "react-native";
 import * as Sentry from "@sentry/react-native";
 import Constants from "expo-constants";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 // Toggle this to enable Sentry in development (always enabled in production)
 const ENABLE_SENTRY_IN_DEV = false;
@@ -70,6 +71,8 @@ const RootLayout = function RootLayout() {
 
   const ref = useNavigationContainerRef();
 
+  const { t } = useTranslation();
+
   useExpoUpdates();
 
   // Register navigation container for Sentry
@@ -103,6 +106,16 @@ const RootLayout = function RootLayout() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="settings"
+          options={{
+            presentation: "modal",
+            headerShown: true,
+            title: t("settings.title"),
+            headerStyle: { backgroundColor: isDark ? darkTheme.colors.surface : lightTheme.colors.surface },
+            headerTintColor: isDark ? darkTheme.colors.text : lightTheme.colors.text,
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );

@@ -24,4 +24,15 @@ export default {
       draw: "Égalité !",
     },
   },
+  settings: {
+    title: "Paramètres",
+    theme: "Thème",
+    themeLight: "Clair",
+    themeDark: "Sombre",
+    themeSystem: "Système",
+    language: "Langue",
+    langSystem: "Système",
+    langEn: "English",
+    langFr: "Français",
+  },
 } satisfies DeepString<typeof en>;

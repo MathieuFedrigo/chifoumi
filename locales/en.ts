@@ -18,6 +18,17 @@ const en = {
       draw: "Draw!",
     },
   },
+  settings: {
+    title: "Settings",
+    theme: "Theme",
+    themeLight: "Light",
+    themeDark: "Dark",
+    themeSystem: "System",
+    language: "Language",
+    langSystem: "System",
+    langEn: "English",
+    langFr: "Français",
+  },
 } as const;
 
 export default en;
