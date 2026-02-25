@@ -20,10 +20,11 @@ jest.mock("@/hooks/useReducedMotion", () => ({
 // Use fake timers for all tests
 jest.useFakeTimers();
 
-// Suppress console.warn and console.error in tests to prevent output pollution
+// Suppress console.warn, console.error, and console.info in tests to prevent output pollution
 // Tests can still spy on these methods to verify they were called
 global.console = {
   ...console,
   warn: jest.fn(),
   error: jest.fn(),
+  info: jest.fn(), // suppress i18next "🌐" promotional message
 };
