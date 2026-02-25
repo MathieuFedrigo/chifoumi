@@ -2,16 +2,15 @@ import { Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "react-i18next";
-import { useAppStore, ThemeMode, LocaleMode } from "@/store/appStore";
+import { useAppStore, useAppStoreActions, ThemeMode, LocaleMode } from "@/store/appStore";
 import * as Sentry from "@sentry/react-native";
 
 export default function SettingsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const themeMode = useAppStore((s) => s.themeMode);
-  const setThemeMode = useAppStore((s) => s.setThemeMode);
   const localeMode = useAppStore((s) => s.localeMode);
-  const setLocaleMode = useAppStore((s) => s.setLocaleMode);
+  const { setThemeMode, setLocaleMode } = useAppStoreActions();
 
   const handleThemeChange = (mode: ThemeMode) => {
     Sentry.addBreadcrumb({

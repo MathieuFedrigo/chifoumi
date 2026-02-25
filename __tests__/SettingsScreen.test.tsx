@@ -103,16 +103,16 @@ describe("SettingsScreen", () => {
 
 describe("appStore - cycleThemeMode (no UI path)", () => {
   it("cycles theme: system → dark → light → system", () => {
-    const { cycleThemeMode, themeMode } = useAppStore.getState();
-    expect(themeMode).toBe("system");
+    const { cycleThemeMode } = useAppStore.getState().actions;
+    expect(useAppStore.getState().themeMode).toBe("system");
 
     cycleThemeMode();
     expect(useAppStore.getState().themeMode).toBe("dark");
 
-    useAppStore.getState().cycleThemeMode();
+    useAppStore.getState().actions.cycleThemeMode();
     expect(useAppStore.getState().themeMode).toBe("light");
 
-    useAppStore.getState().cycleThemeMode();
+    useAppStore.getState().actions.cycleThemeMode();
     expect(useAppStore.getState().themeMode).toBe("system");
   });
 });

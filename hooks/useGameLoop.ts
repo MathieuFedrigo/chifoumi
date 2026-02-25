@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useGameStore } from "@/store/gameStore";
+import { useGameStore, useGameStoreActions } from "@/store/gameStore";
 
 const ROCK_DURATION = 800;
 const PAPER_DURATION = 800;
@@ -9,6 +9,7 @@ const RESULT_DURATION = 1000;
 export const useGameLoop = () => {
   const isPlaying = useGameStore((s) => s.isPlaying);
   const phase = useGameStore((s) => s.phase);
+  const { advancePhase } = useGameStoreActions();
 
   useEffect(() => {
     if (!isPlaying || phase === "idle") return;
@@ -20,9 +21,9 @@ export const useGameLoop = () => {
       RESULT_DURATION;
 
     const timer = setTimeout(() => {
-      useGameStore.getState().advancePhase();
+      advancePhase();
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [isPlaying, phase]);
+  }, [isPlaying, phase, advancePhase]);
 };

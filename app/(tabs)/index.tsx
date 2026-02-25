@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@/hooks/useTheme";
-import { useGameStore } from "@/store/gameStore";
+import { useGameStore, useGameStoreActions } from "@/store/gameStore";
 import { useGameLoop } from "@/hooks/useGameLoop";
 import type { Choice } from "@/store/gameStore";
 import type { ComponentProps } from "react";
@@ -29,8 +29,7 @@ export default function GameScreen() {
   const aiChoice = useGameStore((s) => s.aiChoice);
   const roundResult = useGameStore((s) => s.roundResult);
   const mistakeReason = useGameStore((s) => s.mistakeReason);
-  const startGame = useGameStore((s) => s.startGame);
-  const makeChoice = useGameStore((s) => s.makeChoice);
+  const { startGame, makeChoice } = useGameStoreActions();
 
   const phaseBackground =
     phase === "rock"

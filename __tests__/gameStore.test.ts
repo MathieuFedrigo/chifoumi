@@ -32,7 +32,7 @@ describe("getRandomChoice", () => {
 
 describe("useGameStore edge cases", () => {
   it("makeChoice is a no-op during idle phase", () => {
-    const { makeChoice } = useGameStore.getState();
+    const { makeChoice } = useGameStore.getState().actions;
     makeChoice("rock");
     expect(useGameStore.getState().phase).toBe("idle");
     expect(useGameStore.getState().isPlaying).toBe(false);
@@ -41,39 +41,39 @@ describe("useGameStore edge cases", () => {
   it("makeChoice is a no-op during result phase", () => {
     // Setup: start game, advance to scissors, make a choice to enter result
     jest.spyOn(Math, "random").mockReturnValue(0);
-    const store = useGameStore.getState();
-    store.startGame();
-    store.advancePhase(); // rock → paper
-    store.advancePhase(); // paper → scissors
-    store.makeChoice("rock"); // enters result phase
+    const { startGame, advancePhase, makeChoice } = useGameStore.getState().actions;
+    startGame();
+    advancePhase(); // rock → paper
+    advancePhase(); // paper → scissors
+    makeChoice("rock"); // enters result phase
 
     expect(useGameStore.getState().phase).toBe("result");
 
     // Now try makeChoice during result - should be no-op
-    useGameStore.getState().makeChoice("paper");
+    useGameStore.getState().actions.makeChoice("paper");
     expect(useGameStore.getState().phase).toBe("result");
   });
 
   it("advancePhase from scissors is a no-op when playerChoice is set", () => {
     jest.spyOn(Math, "random").mockReturnValue(0);
-    const store = useGameStore.getState();
-    store.startGame();
-    store.advancePhase(); // rock → paper
-    store.advancePhase(); // paper → scissors
-    store.makeChoice("rock"); // sets playerChoice, enters result
+    const { startGame, advancePhase, makeChoice } = useGameStore.getState().actions;
+    startGame();
+    advancePhase(); // rock → paper
+    advancePhase(); // paper → scissors
+    makeChoice("rock"); // sets playerChoice, enters result
 
     expect(useGameStore.getState().playerChoice).toBe("rock");
     expect(useGameStore.getState().phase).toBe("result");
 
     // advancePhase from result should start next round
-    useGameStore.getState().advancePhase();
+    useGameStore.getState().actions.advancePhase();
     expect(useGameStore.getState().phase).toBe("rock");
     expect(useGameStore.getState().isPlaying).toBe(true);
   });
 
   it("advancePhase is a no-op during idle phase", () => {
-    const store = useGameStore.getState();
-    store.advancePhase();
+    const { advancePhase } = useGameStore.getState().actions;
+    advancePhase();
     expect(useGameStore.getState().phase).toBe("idle");
   });
 });

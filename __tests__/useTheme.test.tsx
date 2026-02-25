@@ -1,7 +1,7 @@
 import { renderRouter, screen, userEvent } from "expo-router/testing-library";
 import { View, Text, Pressable } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
-import { useAppStore } from "@/store/appStore";
+import { useAppStoreActions } from "@/store/appStore";
 
 const useColorSchemeMock = jest.requireMock(
   "react-native/Libraries/Utilities/useColorScheme"
@@ -9,7 +9,7 @@ const useColorSchemeMock = jest.requireMock(
 
 const ThemeDisplay = () => {
   const theme = useTheme();
-  const setThemeMode = useAppStore((s) => s.setThemeMode);
+  const { setThemeMode } = useAppStoreActions();
 
   return (
     <View>
