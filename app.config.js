@@ -90,8 +90,8 @@ export default {
         "@sentry/react-native/expo",
         {
           url: "https://sentry.io/",
-          project: "YOUR_SENTRY_PROJECT",
-          organization: "YOUR_SENTRY_ORG",
+          project: "chifoumi",
+          organization: "mathieu-fedrigo",
         },
       ],
       [
