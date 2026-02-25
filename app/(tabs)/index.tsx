@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "@/hooks/useTheme";
 import { useGameStore, useGameStoreActions } from "@/store/gameStore";
@@ -8,12 +8,12 @@ import { useGameLoop } from "@/hooks/useGameLoop";
 import type { Choice } from "@/store/gameStore";
 import type { ComponentProps } from "react";
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>["name"];
+type IconName = ComponentProps<typeof FontAwesome5>["name"];
 
 const CHOICE_ICONS: Record<Choice, IconName> = {
-  rock: "hand-back-right",
-  paper: "hand-wave",
-  scissors: "content-cut",
+  rock: "hand-rock",
+  paper: "hand-paper",
+  scissors: "hand-scissors",
 };
 
 export default function GameScreen() {
@@ -92,7 +92,7 @@ export default function GameScreen() {
             {playerChoice && aiChoice && (
               <View style={styles.choiceRow}>
                 <View style={styles.choiceDisplay}>
-                  <MaterialCommunityIcons
+                  <FontAwesome5
                     name={CHOICE_ICONS[playerChoice]}
                     size={48}
                     color={theme.colors.text}
@@ -106,7 +106,7 @@ export default function GameScreen() {
                   {"vs"}
                 </Text>
                 <View style={styles.choiceDisplay}>
-                  <MaterialCommunityIcons
+                  <FontAwesome5
                     name={CHOICE_ICONS[aiChoice]}
                     size={48}
                     color={theme.colors.text}
@@ -183,7 +183,7 @@ export default function GameScreen() {
             accessibilityRole="button"
             accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
           >
-            <MaterialCommunityIcons
+            <FontAwesome5
               name={CHOICE_ICONS[choice]}
               size={40}
               color={theme.colors.text}
