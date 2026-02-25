@@ -1,11 +1,11 @@
 import { renderRouter, screen, userEvent, act } from "expo-router/testing-library";
-import GameScreen from "@/app/(tabs)/index";
+import GameScreen from "@/app/game";
 import * as Haptics from "expo-haptics";
 
 const renderApp = () => {
   return renderRouter(
-    { "(tabs)/index": GameScreen },
-    { initialUrl: "/(tabs)" }
+    { "game": GameScreen },
+    { initialUrl: "/game" }
   );
 };
 
@@ -33,10 +33,10 @@ const advanceToTimeout = () => {
 };
 
 describe("GameScreen", () => {
-  it("shows idle state with start button", () => {
+  it("auto-starts and shows Rock! immediately on mount", () => {
     renderApp();
 
-    expect(screen.getByText("Start")).toBeTruthy();
+    expect(screen.getByText("Rock!")).toBeTruthy();
     expect(screen.getByText("Score: 0")).toBeTruthy();
   });
 
@@ -48,20 +48,9 @@ describe("GameScreen", () => {
     expect(screen.getByLabelText("Scissors!")).toBeTruthy();
   });
 
-  it("shows Rock! phase after pressing start", async () => {
-    const user = userEvent.setup();
+  it("transitions through rock → paper → scissors phases", () => {
     renderApp();
 
-    await user.press(screen.getByText("Start"));
-
-    expect(screen.getByText("Rock!")).toBeTruthy();
-  });
-
-  it("transitions through rock → paper → scissors phases", async () => {
-    const user = userEvent.setup();
-    renderApp();
-
-    await user.press(screen.getByText("Start"));
     expect(screen.getByText("Rock!")).toBeTruthy();
 
     act(() => {
@@ -75,11 +64,9 @@ describe("GameScreen", () => {
     expect(screen.getByText("Scissors!")).toBeTruthy();
   });
 
-  it("ends game with 'too late' when player misses scissors window", async () => {
-    const user = userEvent.setup();
+  it("ends game with 'too late' when player misses scissors window", () => {
     renderApp();
 
-    await user.press(screen.getByText("Start"));
     advanceToTimeout();
 
     expect(screen.getByText("Game Over")).toBeTruthy();
@@ -88,11 +75,25 @@ describe("GameScreen", () => {
     expect(screen.getByText("Play Again")).toBeTruthy();
   });
 
+  it("shows back arrow at top-left", () => {
+    renderApp();
+
+    expect(screen.getByLabelText("Home")).toBeTruthy();
+  });
+
+  it("navigates home when pressing the back arrow", async () => {
+    const user = userEvent.setup();
+    const { getPathname } = renderApp();
+
+    await user.press(screen.getByLabelText("Home"));
+
+    expect(getPathname()).toBe("/");
+  });
+
   it("ends game with 'too early' when pressing during rock phase", async () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.press(screen.getByText("Start"));
     expect(screen.getByText("Rock!")).toBeTruthy();
 
     await user.press(screen.getByLabelText("Rock!"));
@@ -108,8 +109,6 @@ describe("GameScreen", () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.press(screen.getByText("Start"));
-
     act(() => {
       jest.advanceTimersByTime(800);
     });
@@ -124,8 +123,6 @@ describe("GameScreen", () => {
   it("ends game with 'too early' when pressing 400ms into paper phase", async () => {
     const user = userEvent.setup();
     renderApp();
-
-    await user.press(screen.getByText("Start"));
 
     act(() => {
       jest.advanceTimersByTime(800); // rock → paper
@@ -146,8 +143,6 @@ describe("GameScreen", () => {
 
     const user = userEvent.setup();
     renderApp();
-
-    await user.press(screen.getByText("Start"));
 
     act(() => {
       jest.advanceTimersByTime(800); // rock → paper
@@ -172,7 +167,6 @@ describe("GameScreen", () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.press(screen.getByText("Start"));
     advanceToScissors();
     expect(screen.getByText("Scissors!")).toBeTruthy();
 
@@ -191,7 +185,6 @@ describe("GameScreen", () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.press(screen.getByText("Start"));
     advanceToScissors();
 
     // Player picks scissors (loses to rock)
@@ -206,7 +199,6 @@ describe("GameScreen", () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.press(screen.getByText("Start"));
     advanceToScissors();
 
     // Player picks rock (draws with rock)
@@ -221,7 +213,6 @@ describe("GameScreen", () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.press(screen.getByText("Start"));
     advanceToScissors();
 
     // Player picks paper (beats rock)
@@ -245,7 +236,6 @@ describe("GameScreen", () => {
     renderApp();
 
     // First game: play one round
-    await user.press(screen.getByText("Start"));
     advanceToScissors();
     await user.press(screen.getByLabelText("Paper!"));
     act(() => {
@@ -270,9 +260,13 @@ describe("GameScreen", () => {
     const user = userEvent.setup();
     renderApp();
 
+    // Trigger game over first (timeout)
+    advanceToTimeout();
+
+    // Now game is over (not playing), press choice button
     await user.press(screen.getByLabelText("Rock!"));
 
-    expect(screen.getByText("Start")).toBeTruthy();
+    expect(screen.getByText("Game Over")).toBeTruthy();
     expect(Haptics.impactAsync).not.toHaveBeenCalled();
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
   });
@@ -283,7 +277,6 @@ describe("GameScreen", () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.press(screen.getByText("Start"));
     advanceToScissors();
 
     await user.press(screen.getByLabelText("Paper!"));

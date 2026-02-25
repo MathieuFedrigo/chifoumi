@@ -2,6 +2,8 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { FontAwesome5 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
+import { useEffect } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import {
   useGameStore,
@@ -36,6 +38,10 @@ export default function GameScreen() {
   const mistakeReason = useGameStore((s) => s.mistakeReason);
   const phaseStartedAt = useGameStore((s) => s.phaseStartedAt);
   const { startGame, makeChoice } = useGameStoreActions();
+
+  useEffect(() => {
+    startGame();
+  }, []);
 
   const phaseBackground =
     phase === "rock"
@@ -87,9 +93,19 @@ export default function GameScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: phaseBackground }]}>
-      <Text style={[styles.score, { color: theme.colors.text }]}>
-        {t("game.score", { count: score })}
-      </Text>
+      <View style={styles.topBar}>
+        <Pressable
+          onPress={() => router.replace("/")}
+          accessibilityRole="button"
+          accessibilityLabel={t("game.goHome")}
+        >
+          <FontAwesome5 name="arrow-left" size={20} color={theme.colors.text} />
+        </Pressable>
+        <Text style={[styles.score, { color: theme.colors.text }]}>
+          {t("game.score", { count: score })}
+        </Text>
+        <View style={styles.topBarSpacer} />
+      </View>
 
       <View style={styles.center}>
         {phase === "result" ? (
@@ -142,30 +158,17 @@ export default function GameScreen() {
               {t("game.finalScore", { count: score })}
             </Text>
             <Pressable
-              style={[styles.startButton, { backgroundColor: theme.colors.button }]}
+              style={[styles.actionButton, { backgroundColor: theme.colors.button }]}
               onPress={startGame}
               accessibilityRole="button"
               accessibilityLabel={t("game.restart")}
             >
-              <Text style={[styles.startButtonText, { color: theme.colors.buttonTint }]}>
+              <Text style={[styles.actionButtonText, { color: theme.colors.buttonTint }]}>
                 {t("game.restart")}
               </Text>
             </Pressable>
           </View>
-        ) : (
-          <View style={styles.startContainer}>
-            <Pressable
-              style={[styles.startButton, { backgroundColor: theme.colors.button }]}
-              onPress={startGame}
-              accessibilityRole="button"
-              accessibilityLabel={t("game.start")}
-            >
-              <Text style={[styles.startButtonText, { color: theme.colors.buttonTint }]}>
-                {t("game.start")}
-              </Text>
-            </Pressable>
-          </View>
-        )}
+        ) : null}
       </View>
 
       <View style={styles.choiceButtons}>
@@ -203,6 +206,15 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 20,
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  topBarSpacer: {
+    width: 20,
   },
   score: {
     fontSize: 24,
@@ -259,15 +271,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
   },
-  startContainer: {
-    alignItems: "center",
-  },
-  startButton: {
+  actionButton: {
     paddingHorizontal: 40,
     paddingVertical: 16,
     borderRadius: 12,
   },
-  startButtonText: {
+  actionButtonText: {
     fontSize: 24,
     fontWeight: "700",
   },

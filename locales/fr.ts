@@ -5,6 +5,10 @@ type DeepString<T> = {
 };
 
 export default {
+  home: {
+    title: "Chifoumi",
+    classicMode: "Classique",
+  },
   game: {
     title: "Chifoumi",
     score: "Score : {{count}}",
@@ -15,6 +19,7 @@ export default {
     gameOver: "Partie terminée",
     finalScore: "Score final : {{count}}",
     restart: "Rejouer",
+    goHome: "Accueil",
     tooEarly: "Trop tôt !",
     tooLate: "Trop tard !",
     idle: "Appuyez sur Commencer",

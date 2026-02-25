@@ -1,7 +1,6 @@
 import { renderRouter, screen, userEvent } from "expo-router/testing-library";
-import { Text } from "react-native";
 import SettingsScreen from "@/app/settings";
-import TabLayout from "@/app/(tabs)/_layout";
+import HomeScreen from "@/app/index";
 import { useAppStore } from "@/store/appStore";
 
 describe("SettingsScreen", () => {
@@ -118,18 +117,17 @@ describe("appStore - cycleThemeMode (no UI path)", () => {
 });
 
 describe("Settings navigation", () => {
-  it("gear icon visible in game screen header navigates to settings", async () => {
+  it("gear icon on home screen navigates to settings", async () => {
     const user = userEvent.setup();
     renderRouter(
       {
-        "(tabs)/_layout": TabLayout,
-        "(tabs)/index": () => <Text>{"Game Screen"}</Text>,
-        settings: SettingsScreen,
+        "index": HomeScreen,
+        "settings": SettingsScreen,
       },
       { initialUrl: "/" }
     );
 
-    expect(screen.getByText("Game Screen")).toBeTruthy();
+    expect(screen.getByText("Chifoumi")).toBeTruthy();
 
     // The gear icon renders as "cog" text in the mock
     const cogIcon = screen.getByText("cog");

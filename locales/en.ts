@@ -1,4 +1,8 @@
 const en = {
+  home: {
+    title: "Chifoumi",
+    classicMode: "Classic",
+  },
   game: {
     title: "Chifoumi",
     score: "Score: {{count}}",
@@ -9,6 +13,7 @@ const en = {
     gameOver: "Game Over",
     finalScore: "Final Score: {{count}}",
     restart: "Play Again",
+    goHome: "Home",
     tooEarly: "Too early!",
     tooLate: "Too late!",
     idle: "Press Start",

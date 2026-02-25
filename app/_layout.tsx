@@ -107,7 +107,8 @@ const RootLayout = function RootLayout() {
     <ThemeProvider value={toNavigationTheme(isDark ? darkTheme : lightTheme, isDark)}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="game" />
         <Stack.Screen
           name="settings"
           options={{
