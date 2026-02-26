@@ -144,30 +144,18 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     makeChoice: (choice: Choice) => {
       const { phase, score, phaseStartedAt, modeData, actions: { endGame } } = get();
-      if (phase === "rock") {
-        endGame("too_early");
-        return;
-      }
+      if (phase === "rock") return endGame("too_early");
       if (phase === "paper") {
-        if (!isGracePeriodActive(phaseStartedAt, score)) {
-          endGame("too_early");
-          return;
-        }
+        if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
         // grace period — treat as valid scissors input
-        if (modeData.gameMode === "directions" && modeData.isDirectionRound) {
-          endGame("wrong_type");
-          return;
-        }
+        if (modeData.gameMode === "directions" && modeData.isDirectionRound) return endGame("wrong_type");
         const ai = getRandomChoice();
         set({ modeData: buildRpsInputData(modeData, choice, ai), phase: "scissors", phaseStartedAt: Date.now() });
         return;
       }
       if (phase !== "scissors") return;
       // In directions mode, RPS press during direction round = wrong_type (check before playerInput guard)
-      if (modeData.gameMode === "directions" && modeData.isDirectionRound) {
-        endGame("wrong_type");
-        return;
-      }
+      if (modeData.gameMode === "directions" && modeData.isDirectionRound) return endGame("wrong_type");
       if (modeData.playerInput !== null) return;
       set({ modeData: buildRpsInputData(modeData, choice, getRandomChoice()) });
       // phase stays "scissors" — beat timer will advance to result naturally
@@ -176,20 +164,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
     makeDirectionChoice: (direction: Direction) => {
       const { phase, score, phaseStartedAt, modeData, actions: { endGame } } = get();
       if (modeData.gameMode !== "directions") return;
-      if (phase === "rock") {
-        endGame("too_early");
-        return;
-      }
+      if (phase === "rock") return endGame("too_early");
       if (phase === "paper") {
-        if (!isGracePeriodActive(phaseStartedAt, score)) {
-          endGame("too_early");
-          return;
-        }
+        if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
         // grace period
-        if (!modeData.isDirectionRound) {
-          endGame("wrong_type");
-          return;
-        }
+        if (!modeData.isDirectionRound) return endGame("wrong_type");
         if (modeData.playerInput !== null) return;
         set({
           modeData: { ...modeData, playerInput: direction, aiInput: getRandomDirection() },
@@ -199,10 +178,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         return;
       }
       if (phase !== "scissors") return;
-      if (!modeData.isDirectionRound) {
-        endGame("wrong_type");
-        return;
-      }
+      if (!modeData.isDirectionRound) return endGame("wrong_type");
       if (modeData.playerInput !== null) return;
       set({
         modeData: { ...modeData, playerInput: direction, aiInput: getRandomDirection() },
@@ -213,14 +189,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
     advancePhase: () => {
       const { phase, modeData, actions: { endGame } } = get();
 
-      if (phase === "rock") {
-        set({ phase: "paper", phaseStartedAt: Date.now() });
-        return;
-      }
-      if (phase === "paper") {
-        set({ phase: "scissors", phaseStartedAt: Date.now() });
-        return;
-      }
+      if (phase === "rock") return set({ phase: "paper", phaseStartedAt: Date.now() });
+      if (phase === "paper") return set({ phase: "scissors", phaseStartedAt: Date.now() });
       if (phase === "scissors") {
         if (modeData.playerInput !== null) {
           set({ phase: "result", phaseStartedAt: Date.now() });
@@ -231,17 +201,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
       }
       if (phase !== "result") return;
 
-      if (modeData.gameMode === "classic") {
-        set((s) => ({ phase: "rock", score: s.score + 1, modeData: CLASSIC_RESET, phaseStartedAt: Date.now() }));
-        return;
-      }
+      if (modeData.gameMode === "classic") return set((s) => ({ phase: "rock", score: s.score + 1, modeData: CLASSIC_RESET, phaseStartedAt: Date.now() }));
 
       if (!modeData.isDirectionRound) {
         // DirectionsRpsPhase result
-        if (modeData.roundResult === "draw") {
-          set((s) => ({ phase: "rock", score: s.score + 1, modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() }));
-          return;
-        }
+        if (modeData.roundResult === "draw") return set((s) => ({ phase: "rock", score: s.score + 1, modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() }));
         // win or lose → enter direction phase
         set({
           phase: "rock",
@@ -265,15 +229,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
         set((s) => ({ phase: "rock", score: s.score + scoreIncrease, modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() }));
         return;
       }
-      if (modeData.directionAttemptsLeft > 1) {
-        // more attempts: new direction round
-        set({
-          phase: "rock",
-          modeData: { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },
-          phaseStartedAt: Date.now(),
-        });
-        return;
-      }
+      // more attempts: new direction round
+      if (modeData.directionAttemptsLeft > 1) return set({
+        phase: "rock",
+        modeData: { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },
+        phaseStartedAt: Date.now(),
+      });
       // no more attempts: round voided
       set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
     },
