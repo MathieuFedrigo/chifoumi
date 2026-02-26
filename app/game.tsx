@@ -8,7 +8,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useGameStore, useGameStoreActions } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { useGameLoop } from "@/hooks/useGameLoop";
-import type { Choice, Direction, GameMode } from "@/store/gameStore";
+import type { Choice, Direction, GameMode, RoundResult } from "@/store/gameStore";
 import type { ComponentProps } from "react";
 
 type IconName = ComponentProps<typeof FontAwesome5>["name"];
@@ -39,18 +39,30 @@ export default function GameScreen() {
   const phase = useGameStore((s) => s.phase);
   const score = useGameStore((s) => s.score);
   const isPlaying = useGameStore((s) => s.isPlaying);
-  const playerChoice = useGameStore((s) => s.playerChoice);
-  const aiChoice = useGameStore((s) => s.aiChoice);
-  const roundResult = useGameStore((s) => s.roundResult);
   const mistakeReason = useGameStore((s) => s.mistakeReason);
   const phaseStartedAt = useGameStore((s) => s.phaseStartedAt);
-  const gameMode = useGameStore((s) => s.gameMode);
-  const isDirectionRound = useGameStore((s) => s.isDirectionRound);
-  const pendingRpsResult = useGameStore((s) => s.pendingRpsResult);
-  const directionAiChoice = useGameStore((s) => s.directionAiChoice);
-  const playerDirectionChoice = useGameStore((s) => s.playerDirectionChoice);
-  const directionAttemptsLeft = useGameStore((s) => s.directionAttemptsLeft);
+  const modeData = useGameStore((s) => s.modeData);
   const { startGame, makeChoice, makeDirectionChoice } = useGameStoreActions();
+
+  // Narrow modeData into aliased variables matching the rest of the component
+  const gameMode = modeData.gameMode;
+  const isDirectionRound = modeData.gameMode === "directions" && modeData.isDirectionRound;
+  const directionAttemptsLeft = modeData.gameMode !== "classic" ? modeData.directionAttemptsLeft : 2;
+  let playerChoice: Choice | null = null;
+  let aiChoice: Choice | null = null;
+  let roundResult: RoundResult | null = null;
+  let playerDirectionChoice: Direction | null = null;
+  let directionAiChoice: Direction | null = null;
+  let pendingRpsResult: RoundResult | null = null;
+  if (modeData.gameMode === "directions" && modeData.isDirectionRound) {
+    playerDirectionChoice = modeData.playerInput;
+    directionAiChoice = modeData.aiInput;
+    pendingRpsResult = modeData.pendingRpsResult;
+  } else {
+    playerChoice = modeData.playerInput;
+    aiChoice = modeData.aiInput;
+    roundResult = modeData.roundResult;
+  }
 
   useEffect(() => {
     startGame(urlMode);

@@ -29,14 +29,8 @@ export const useGameLoop = () => {
 
     const timer = setTimeout(() => {
       const state = useGameStore.getState();
-      if (state.gameMode === "directions" && state.isDirectionRound) {
-        if (state.playerDirectionChoice === null) {
-          endGame("too_late");
-        }
-      } else {
-        if (state.playerChoice === null) {
-          endGame("too_late");
-        }
+      if (state.modeData.playerInput === null) {
+        endGame("too_late");
       }
     }, graceAfter);
 

@@ -1,6 +1,6 @@
 import { determineResult, getRandomChoice, getRandomDirection, useGameStore } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
-import type { Choice, Direction, GameMode } from "@/store/gameStore";
+import type { Choice, Direction, GameMode, ModeData } from "@/store/gameStore";
 
 describe("determineResult", () => {
   it("returns draw for same choices", () => {
@@ -40,6 +40,23 @@ describe("getRandomDirection", () => {
   });
 });
 
+// Helpers for narrowing modeData in assertions
+const md = () => useGameStore.getState().modeData;
+const mdIsDirectionRound = () => {
+  const m = md();
+  return m.gameMode === "directions" && m.isDirectionRound;
+};
+const mdDirectionAttemptsLeft = () => {
+  const m = md();
+  if (m.gameMode === "classic") throw new Error("Not in directions mode");
+  return m.directionAttemptsLeft;
+};
+const mdPendingRpsResult = () => {
+  const m = md();
+  if (m.gameMode !== "directions" || !m.isDirectionRound) throw new Error("Not in direction round");
+  return m.pendingRpsResult;
+};
+
 describe("useGameStore edge cases", () => {
   it("makeChoice is a no-op during idle phase", () => {
     const { makeChoice } = useGameStore.getState().actions;
@@ -71,12 +88,12 @@ describe("useGameStore edge cases", () => {
     startGame();
     advancePhase(); // rock → paper
     advancePhase(); // paper → scissors
-    makeChoice("rock"); // sets playerChoice, phase stays scissors
+    makeChoice("rock"); // sets playerInput, phase stays scissors
 
-    expect(useGameStore.getState().playerChoice).toBe("rock");
+    expect(md().playerInput).toBe("rock");
     expect(useGameStore.getState().phase).toBe("scissors");
 
-    // advancePhase during scissors with playerChoice → result
+    // advancePhase during scissors with playerInput → result
     useGameStore.getState().actions.advancePhase();
     expect(useGameStore.getState().phase).toBe("result");
 
@@ -100,8 +117,8 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // rock → paper
     advancePhase(); // paper → scissors
 
-    // No makeChoice — playerChoice is null
-    advancePhase(); // scissors + null playerChoice → endGame("too_late")
+    // No makeChoice — playerInput is null
+    advancePhase(); // scissors + null playerInput → endGame("too_late")
     expect(useGameStore.getState().phase).toBe("idle");
     expect(useGameStore.getState().isPlaying).toBe(false);
     expect(useGameStore.getState().mistakeReason).toBe("too_late");
@@ -115,7 +132,7 @@ describe("useGameStore edge cases", () => {
     makeDirectionChoice("up");
     // No effect since gameMode is classic
     expect(useGameStore.getState().phase).toBe("scissors");
-    expect(useGameStore.getState().playerDirectionChoice).toBeNull();
+    expect(md().playerInput).toBeNull();
     expect(useGameStore.getState().isPlaying).toBe(true);
   });
 
@@ -136,14 +153,14 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // scissors → result
     advancePhase(); // result → rock (enters direction round)
 
-    expect(useGameStore.getState().isDirectionRound).toBe(true);
+    expect(mdIsDirectionRound()).toBe(true);
     expect(useGameStore.getState().phase).toBe("rock");
 
     advancePhase(); // rock → paper
     advancePhase(); // paper → scissors
 
     // No direction choice made
-    advancePhase(); // scissors in direction round + no playerDirectionChoice → too_late
+    advancePhase(); // scissors in direction round + no playerInput → too_late
     expect(useGameStore.getState().phase).toBe("idle");
     expect(useGameStore.getState().mistakeReason).toBe("too_late");
   });
@@ -159,7 +176,7 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // result → rock (draw → score++)
 
     expect(useGameStore.getState().score).toBe(1);
-    expect(useGameStore.getState().isDirectionRound).toBe(false);
+    expect(mdIsDirectionRound()).toBe(false);
     expect(useGameStore.getState().phase).toBe("rock");
   });
 
@@ -173,9 +190,9 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // scissors → result
     advancePhase(); // result → rock (win → enter direction round)
 
-    expect(useGameStore.getState().isDirectionRound).toBe(true);
-    expect(useGameStore.getState().pendingRpsResult).toBe("win");
-    expect(useGameStore.getState().directionAttemptsLeft).toBe(2);
+    expect(mdIsDirectionRound()).toBe(true);
+    expect(mdPendingRpsResult()).toBe("win");
+    expect(mdDirectionAttemptsLeft()).toBe(2);
     expect(useGameStore.getState().score).toBe(0); // no score yet
     expect(useGameStore.getState().phase).toBe("rock");
   });
@@ -197,7 +214,7 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // result → rock (matched, win → score++)
 
     expect(useGameStore.getState().score).toBe(1);
-    expect(useGameStore.getState().isDirectionRound).toBe(false);
+    expect(mdIsDirectionRound()).toBe(false);
     expect(useGameStore.getState().phase).toBe("rock");
   });
 
@@ -218,8 +235,8 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // scissors → result
     advancePhase(); // result → new direction round (attemptsLeft 2→1)
 
-    expect(useGameStore.getState().isDirectionRound).toBe(true);
-    expect(useGameStore.getState().directionAttemptsLeft).toBe(1);
+    expect(mdIsDirectionRound()).toBe(true);
+    expect(mdDirectionAttemptsLeft()).toBe(1);
     expect(useGameStore.getState().score).toBe(0);
     expect(useGameStore.getState().phase).toBe("rock");
   });
@@ -245,10 +262,10 @@ describe("useGameStore edge cases", () => {
     makeDirectionChoice("up"); // miss again (AI=down, attemptsLeft=1 → voided)
     advancePhase(); advancePhase(); // scissors → result → back to normal
 
-    expect(useGameStore.getState().isDirectionRound).toBe(false);
+    expect(mdIsDirectionRound()).toBe(false);
     expect(useGameStore.getState().score).toBe(0); // voided
     expect(useGameStore.getState().phase).toBe("rock");
-    expect(useGameStore.getState().directionAttemptsLeft).toBe(2); // reset
+    expect(mdDirectionAttemptsLeft()).toBe(2); // reset
   });
 
   it("directions mode lose + AI matches player direction → no score, back to normal", () => {
@@ -262,14 +279,14 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // scissors → result
     advancePhase(); // result → direction round (lose)
 
-    expect(useGameStore.getState().pendingRpsResult).toBe("lose");
+    expect(mdPendingRpsResult()).toBe("lose");
 
     advancePhase(); advancePhase(); // rock → paper → scissors
     makeDirectionChoice("up"); // player picks up; AI picks up → matched
     advancePhase(); advancePhase(); // scissors → result → rock
 
     expect(useGameStore.getState().score).toBe(0); // no score for player
-    expect(useGameStore.getState().isDirectionRound).toBe(false);
+    expect(mdIsDirectionRound()).toBe(false);
     expect(useGameStore.getState().phase).toBe("rock");
   });
 
@@ -360,13 +377,14 @@ describe("useGameStore edge cases", () => {
     makeDirectionChoice("up");
     // Phase transitions to scissors (grace period input treated as scissors timing)
     expect(useGameStore.getState().phase).toBe("scissors");
-    expect(useGameStore.getState().playerDirectionChoice).toBe("up");
+    const modeData = useGameStore.getState().modeData;
+    expect(modeData.gameMode === "directions" && modeData.isDirectionRound ? modeData.playerInput : null).toBe("up");
     expect(useGameStore.getState().isPlaying).toBe(true);
   });
 
   it("makeDirectionChoice no-op during grace period when direction already chosen (defensive)", () => {
     // This tests the defensive guard at the top of the grace-period branch.
-    // The only way to have playerDirectionChoice set while still in paper phase is via
+    // The only way to have playerInput set while still in paper phase is via
     // direct store manipulation — there is no natural UI path to this state.
     jest.spyOn(Math, "random").mockReturnValue(0);
     const { beatInterval, graceBefore } = getRoundTimings(0);
@@ -383,12 +401,15 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // rock → paper
     // Advance into grace period
     jest.advanceTimersByTime(beatInterval - graceBefore + 10);
-    // Force playerDirectionChoice to be already set (defensive edge case)
-    useGameStore.setState({ playerDirectionChoice: "up" as Direction });
+    // Force playerInput to be already set (defensive edge case)
+    useGameStore.setState((state) => ({
+      modeData: { ...state.modeData, playerInput: "up" as Direction } as ModeData,
+    }));
 
-    // Should return early — playerDirectionChoice already set
+    // Should return early — playerInput already set
     makeDirectionChoice("down");
-    expect(useGameStore.getState().playerDirectionChoice).toBe("up"); // unchanged
+    const modeData = useGameStore.getState().modeData;
+    expect(modeData.gameMode === "directions" && modeData.isDirectionRound ? modeData.playerInput : null).toBe("up"); // unchanged
   });
 
   it("makeDirectionChoice no-op in scissors phase when direction already chosen", () => {
@@ -404,12 +425,47 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // rock → paper
     advancePhase(); // paper → scissors
 
-    makeDirectionChoice("up"); // sets playerDirectionChoice
-    expect(useGameStore.getState().playerDirectionChoice).toBe("up");
+    makeDirectionChoice("up"); // sets playerInput
+    {
+      const modeData = useGameStore.getState().modeData;
+      expect(modeData.gameMode === "directions" && modeData.isDirectionRound ? modeData.playerInput : null).toBe("up");
+    }
 
-    // Second direction choice in scissors should be no-op (line 179)
+    // Second direction choice in scissors should be no-op
     makeDirectionChoice("down");
-    expect(useGameStore.getState().playerDirectionChoice).toBe("up"); // unchanged
+    {
+      const modeData = useGameStore.getState().modeData;
+      expect(modeData.gameMode === "directions" && modeData.isDirectionRound ? modeData.playerInput : null).toBe("up"); // unchanged
+    }
+  });
+
+  it("makeChoice accepted during grace period in directions RPS round (non-direction round)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const { beatInterval, graceBefore } = getRoundTimings(0);
+    const { startGame, advancePhase, makeChoice } = useGameStore.getState().actions;
+    startGame("directions");
+    jest.advanceTimersByTime(beatInterval);
+    advancePhase(); // rock → paper
+    jest.advanceTimersByTime(beatInterval - graceBefore + 10); // into grace period
+    // In directions RPS round (not direction round), grace period RPS press = accepted
+    makeChoice("paper"); // wins vs rock
+    expect(useGameStore.getState().phase).toBe("scissors");
+    expect(md().playerInput).toBe("paper");
+    expect(useGameStore.getState().isPlaying).toBe(true);
+  });
+
+  it("makeChoice is a no-op when player already chose in scissors phase", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const { startGame, advancePhase, makeChoice } = useGameStore.getState().actions;
+    startGame();
+    advancePhase(); // rock → paper
+    advancePhase(); // paper → scissors
+    makeChoice("paper"); // first press
+    const firstInput = md().playerInput;
+
+    makeChoice("rock"); // second press: playerInput already set → no-op
+    expect(md().playerInput).toBe(firstInput); // unchanged
+    expect(useGameStore.getState().isPlaying).toBe(true);
   });
 
   it("makeDirectionChoice is a no-op when phase is not scissors (directions mode, idle phase)", () => {
@@ -419,10 +475,10 @@ describe("useGameStore edge cases", () => {
     // End game to get to idle phase with gameMode=directions still set
     useGameStore.getState().actions.endGame("too_early");
     expect(useGameStore.getState().phase).toBe("idle");
-    expect(useGameStore.getState().gameMode).toBe("directions" as GameMode);
+    expect(useGameStore.getState().modeData.gameMode).toBe("directions" as GameMode);
 
     makeDirectionChoice("up"); // phase=idle, not scissors → return early
     expect(useGameStore.getState().phase).toBe("idle");
-    expect(useGameStore.getState().playerDirectionChoice).toBeNull();
+    expect(useGameStore.getState().modeData.playerInput).toBeNull();
   });
 });
