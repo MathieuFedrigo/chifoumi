@@ -63,6 +63,8 @@ const getNextPhase = (phase: GamePhase, choosePhase: GamePhase): GamePhase | nul
   return null;
 };
 
+const NEXT_COUNTDOWN_STATE: Record<CountdownState, CountdownState> = { 3: 2, 2: 1, 1: 3 };
+
 interface GameActions {
   startGame: (mode?: GameMode) => void;
   makeInput: (input: Choice | Direction) => void;
@@ -219,28 +221,21 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
       // Choose phase: resolve or too_late
       if (phase === choosePhase) {
-        if (modeData.playerInput !== null) {
-          set({ phase: "result", phaseStartedAt: Date.now() });
-        } else {
-          endGame("too_late");
-        }
-        return;
+        if (modeData.playerInput) return set({ phase: "result", phaseStartedAt: Date.now() });
+        return endGame("too_late");
       }
       if (phase !== "result") return;
 
       // Result phase: mode-specific handling
       if (modeData.gameMode === "classic") return set((s) => ({ phase: "rock", score: s.score + 1, modeData: CLASSIC_RESET, phaseStartedAt: Date.now() }));
 
-      if (modeData.gameMode === "countdown") {
-        const nextCountdown: CountdownState = modeData.countdownState === 3 ? 2 : modeData.countdownState === 2 ? 1 : 3;
-        set((s) => ({
+      if (modeData.gameMode === "countdown") 
+        return set((s) => ({
           phase: "rock",
           score: s.score + 1,
-          modeData: { ...COUNTDOWN_RESET, countdownState: nextCountdown },
+          modeData: { ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] },
           phaseStartedAt: Date.now(),
         }));
-        return;
-      }
 
       if (!modeData.isDirectionRound) {
         // DirectionsRpsPhase result
