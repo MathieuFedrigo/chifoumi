@@ -28,6 +28,7 @@ export default {
     confirmWin: "Confirmé !",
     aiConfirms: "Ils ont confirmé !",
     directionMiss: "Mauvaise direction !",
+    vs: "vs",
     attemptsLeft_one: "{{count}} essai restant",
     attemptsLeft_other: "{{count}} essais restants",
     result: {

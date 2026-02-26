@@ -22,6 +22,7 @@ const en = {
     confirmWin: "Confirm!",
     aiConfirms: "They confirmed!",
     directionMiss: "Wrong direction!",
+    vs: "vs",
     attemptsLeft_one: "{{count}} try left",
     attemptsLeft_other: "{{count}} tries left",
     result: {

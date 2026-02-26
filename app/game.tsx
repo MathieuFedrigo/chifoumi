@@ -27,6 +27,7 @@ const DIRECTION_ICONS: Record<Direction, IconName> = {
 };
 
 const DIRECTIONS: Direction[] = ["up", "down", "left", "right"];
+const CHOICES = ["rock", "paper", "scissors"] as const;
 
 export default function GameScreen() {
   const theme = useTheme();
@@ -195,8 +196,7 @@ export default function GameScreen() {
                   </Text>
                 </View>
                 <Text style={[styles.vs, { color: theme.colors.textTertiary }]}>
-                  {/* eslint-disable-next-line i18next/no-literal-string */}
-                  {"vs"}
+                  {t("game.vs")}
                 </Text>
                 <View style={styles.choiceDisplay}>
                   <FontAwesome5
@@ -240,8 +240,7 @@ export default function GameScreen() {
                   </Text>
                 </View>
                 <Text style={[styles.vs, { color: theme.colors.textTertiary }]}>
-                  {/* eslint-disable-next-line i18next/no-literal-string */}
-                  {"vs"}
+                  {t("game.vs")}
                 </Text>
                 <View style={styles.choiceDisplay}>
                   <FontAwesome5
@@ -319,8 +318,7 @@ export default function GameScreen() {
       )}
 
       <View style={styles.choiceButtons}>
-        {/* eslint-disable-next-line i18next/no-literal-string */}
-        {(["rock", "paper", "scissors"] as const).map((choice) => (
+        {CHOICES.map((choice) => (
           <Pressable
             key={choice}
             style={[
