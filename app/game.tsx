@@ -300,16 +300,16 @@ export default function GameScreen() {
       {gameMode === "directions" ? (
         <View style={styles.gameButtonsRow}>
           <View style={styles.directionButtons}>
-            <View style={{ position: "absolute", top: 0, left: 56 }}>
+            <View style={{ position: "absolute", top: 0, left: 50 }}>
               <DirBtn dir="up" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
             </View>
-            <View style={{ position: "absolute", top: 56, left: 0 }}>
+            <View style={{ position: "absolute", top: 50, left: 0 }}>
               <DirBtn dir="left" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
             </View>
-            <View style={{ position: "absolute", top: 56, left: 112 }}>
+            <View style={{ position: "absolute", top: 50, left: 100 }}>
               <DirBtn dir="right" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
             </View>
-            <View style={{ position: "absolute", top: 112, left: 56 }}>
+            <View style={{ position: "absolute", top: 100, left: 50 }}>
               <DirBtn dir="down" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
             </View>
           </View>
@@ -422,8 +422,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   directionButtons: {
-    width: 168,
-    height: 168,
+    width: 160,
+    height: 160,
   },
   choiceButtons: {
     alignItems: "center",
