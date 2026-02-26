@@ -66,7 +66,7 @@ export default function GameScreen() {
 
   useEffect(() => {
     startGame(urlMode);
-  }, []);
+  }, [startGame, urlMode]);
 
   const phaseBackground =
     phase === "rock"
@@ -143,7 +143,6 @@ export default function GameScreen() {
   const showRpsResult = !isDirectionRound && (phase === "result" || (phase === "scissors" && !!playerChoice));
   const showDirectionResult =
     isDirectionRound && (phase === "result" || (phase === "scissors" && !!playerDirectionChoice));
-  const showResult = showRpsResult || showDirectionResult;
 
   const rpsButtonsDisabled = (phase !== "scissors" || !!playerChoice || isDirectionRound) && isPlaying;
   const directionButtonsDisabled = (phase !== "scissors" || !!playerDirectionChoice) && isPlaying;
