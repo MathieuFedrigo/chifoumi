@@ -93,6 +93,30 @@ const DIRECTIONS_RPS_RESET: DirectionsRpsPhase = {
   directionAttemptsLeft: 2,
 };
 
+const isGracePeriodActive = (phaseStartedAt: number, score: number): boolean => {
+  const { beatInterval, graceBefore } = getRoundTimings(score);
+  return Date.now() - phaseStartedAt >= beatInterval - graceBefore;
+};
+
+const buildRpsInputData = (
+  modeData: ClassicModeData | DirectionsRpsPhase,
+  choice: Choice,
+  ai: Choice
+): ClassicModeData | DirectionsRpsPhase => {
+  const roundResult = determineResult(choice, ai);
+  if (modeData.gameMode === "classic") {
+    return { gameMode: "classic", playerInput: choice, aiInput: ai, roundResult };
+  }
+  return {
+    gameMode: "directions",
+    isDirectionRound: false,
+    playerInput: choice,
+    aiInput: ai,
+    roundResult,
+    directionAttemptsLeft: modeData.directionAttemptsLeft,
+  };
+};
+
 export const useGameStore = create<GameState>()((set, get) => ({
   phase: "idle",
   score: 0,
@@ -125,31 +149,17 @@ export const useGameStore = create<GameState>()((set, get) => ({
         return;
       }
       if (phase === "paper") {
-        const elapsed = Date.now() - phaseStartedAt;
-        const timings = getRoundTimings(score);
-        if (elapsed < timings.beatInterval - timings.graceBefore) {
+        if (!isGracePeriodActive(phaseStartedAt, score)) {
           endGame("too_early");
-        } else {
-          // grace period — treat as valid scissors input
-          if (modeData.gameMode === "directions" && modeData.isDirectionRound) {
-            endGame("wrong_type");
-            return;
-          }
-          const ai = getRandomChoice();
-          const result = determineResult(choice, ai);
-          const newModeData: ModeData =
-            modeData.gameMode === "classic"
-              ? { gameMode: "classic", playerInput: choice, aiInput: ai, roundResult: result }
-              : {
-                  gameMode: "directions",
-                  isDirectionRound: false,
-                  playerInput: choice,
-                  aiInput: ai,
-                  roundResult: result,
-                  directionAttemptsLeft: modeData.directionAttemptsLeft,
-                };
-          set({ modeData: newModeData, phase: "scissors", phaseStartedAt: Date.now() });
+          return;
         }
+        // grace period — treat as valid scissors input
+        if (modeData.gameMode === "directions" && modeData.isDirectionRound) {
+          endGame("wrong_type");
+          return;
+        }
+        const ai = getRandomChoice();
+        set({ modeData: buildRpsInputData(modeData, choice, ai), phase: "scissors", phaseStartedAt: Date.now() });
         return;
       }
       if (phase !== "scissors") return;
@@ -159,19 +169,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         return;
       }
       if (modeData.playerInput !== null) return;
-      const ai = getRandomChoice();
-      const newModeData: ModeData =
-        modeData.gameMode === "classic"
-          ? { gameMode: "classic", playerInput: choice, aiInput: ai, roundResult: determineResult(choice, ai) }
-          : {
-              gameMode: "directions",
-              isDirectionRound: false,
-              playerInput: choice,
-              aiInput: ai,
-              roundResult: determineResult(choice, ai),
-              directionAttemptsLeft: modeData.directionAttemptsLeft,
-            };
-      set({ modeData: newModeData });
+      set({ modeData: buildRpsInputData(modeData, choice, getRandomChoice()) });
       // phase stays "scissors" — beat timer will advance to result naturally
     },
 
@@ -183,9 +181,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         return;
       }
       if (phase === "paper") {
-        const elapsed = Date.now() - phaseStartedAt;
-        const timings = getRoundTimings(score);
-        if (elapsed < timings.beatInterval - timings.graceBefore) {
+        if (!isGracePeriodActive(phaseStartedAt, score)) {
           endGame("too_early");
           return;
         }
@@ -219,79 +215,67 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
       if (phase === "rock") {
         set({ phase: "paper", phaseStartedAt: Date.now() });
-      } else if (phase === "paper") {
+        return;
+      }
+      if (phase === "paper") {
         set({ phase: "scissors", phaseStartedAt: Date.now() });
-      } else if (phase === "scissors") {
+        return;
+      }
+      if (phase === "scissors") {
         if (modeData.playerInput !== null) {
           set({ phase: "result", phaseStartedAt: Date.now() });
         } else {
           endGame("too_late");
         }
-      } else if (phase === "result") {
-        if (modeData.gameMode === "classic") {
-          set((s) => ({
-            phase: "rock",
-            score: s.score + 1,
-            modeData: CLASSIC_RESET,
-            phaseStartedAt: Date.now(),
-          }));
-        } else if (!modeData.isDirectionRound) {
-          // DirectionsRpsPhase result
-          if (modeData.roundResult === "draw") {
-            set((s) => ({
-              phase: "rock",
-              score: s.score + 1,
-              modeData: DIRECTIONS_RPS_RESET,
-              phaseStartedAt: Date.now(),
-            }));
-          } else {
-            // win or lose → enter direction phase
-            set({
-              phase: "rock",
-              modeData: {
-                gameMode: "directions",
-                isDirectionRound: true,
-                playerInput: null,
-                aiInput: null,
-                pendingRpsResult: modeData.roundResult!,
-                directionAttemptsLeft: 2,
-              },
-              phaseStartedAt: Date.now(),
-            });
-          }
-        } else {
-          // DirectionsDirectionPhase result
-          const matched = modeData.playerInput === modeData.aiInput;
-          if (matched) {
-            const scoreIncrease = modeData.pendingRpsResult === "win" ? 1 : 0;
-            set((s) => ({
-              phase: "rock",
-              score: s.score + scoreIncrease,
-              modeData: DIRECTIONS_RPS_RESET,
-              phaseStartedAt: Date.now(),
-            }));
-          } else if (modeData.directionAttemptsLeft > 1) {
-            // more attempts: new direction round
-            set({
-              phase: "rock",
-              modeData: {
-                ...modeData,
-                playerInput: null,
-                aiInput: null,
-                directionAttemptsLeft: modeData.directionAttemptsLeft - 1,
-              },
-              phaseStartedAt: Date.now(),
-            });
-          } else {
-            // no more attempts: round voided
-            set({
-              phase: "rock",
-              modeData: DIRECTIONS_RPS_RESET,
-              phaseStartedAt: Date.now(),
-            });
-          }
-        }
+        return;
       }
+      if (phase !== "result") return;
+
+      if (modeData.gameMode === "classic") {
+        set((s) => ({ phase: "rock", score: s.score + 1, modeData: CLASSIC_RESET, phaseStartedAt: Date.now() }));
+        return;
+      }
+
+      if (!modeData.isDirectionRound) {
+        // DirectionsRpsPhase result
+        if (modeData.roundResult === "draw") {
+          set((s) => ({ phase: "rock", score: s.score + 1, modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() }));
+          return;
+        }
+        // win or lose → enter direction phase
+        set({
+          phase: "rock",
+          modeData: {
+            gameMode: "directions",
+            isDirectionRound: true,
+            playerInput: null,
+            aiInput: null,
+            pendingRpsResult: modeData.roundResult!,
+            directionAttemptsLeft: 2,
+          },
+          phaseStartedAt: Date.now(),
+        });
+        return;
+      }
+
+      // DirectionsDirectionPhase result
+      const matched = modeData.playerInput === modeData.aiInput;
+      if (matched) {
+        const scoreIncrease = modeData.pendingRpsResult === "win" ? 1 : 0;
+        set((s) => ({ phase: "rock", score: s.score + scoreIncrease, modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() }));
+        return;
+      }
+      if (modeData.directionAttemptsLeft > 1) {
+        // more attempts: new direction round
+        set({
+          phase: "rock",
+          modeData: { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },
+          phaseStartedAt: Date.now(),
+        });
+        return;
+      }
+      // no more attempts: round voided
+      set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
     },
 
     endGame: (reason: MistakeReason) => {
