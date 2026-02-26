@@ -402,7 +402,7 @@ describe("GameScreen – Directions mode", () => {
     expect(screen.queryByLabelText("Right")).toBeNull();
   });
 
-  it("pressing direction during rock phase ends game with too_early", async () => {
+  it("pressing direction during rock phase ends game with wrong_type", async () => {
     const user = userEvent.setup();
     renderDirectionsApp();
 
@@ -411,13 +411,13 @@ describe("GameScreen – Directions mode", () => {
     await user.press(screen.getByLabelText("Up"));
 
     expect(screen.getByText("Game Over")).toBeTruthy();
-    expect(screen.getByText("Too early!")).toBeTruthy();
+    expect(screen.getByText("Wrong button!")).toBeTruthy();
     expect(Haptics.notificationAsync).toHaveBeenCalledWith(
       Haptics.NotificationFeedbackType.Error
     );
   });
 
-  it("pressing direction during paper phase ends game with too_early", async () => {
+  it("pressing direction during paper phase ends game with wrong_type", async () => {
     const user = userEvent.setup();
     renderDirectionsApp();
     const { beatInterval } = getRoundTimings(0);
@@ -428,7 +428,7 @@ describe("GameScreen – Directions mode", () => {
     await user.press(screen.getByLabelText("Down"));
 
     expect(screen.getByText("Game Over")).toBeTruthy();
-    expect(screen.getByText("Too early!")).toBeTruthy();
+    expect(screen.getByText("Wrong button!")).toBeTruthy();
   });
 
   it("pressing direction during normal scissors phase ends game with wrong_type", async () => {

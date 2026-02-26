@@ -190,20 +190,19 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const gracePhase = getGracePhase(modeData);
 
       const isWrongType = isDir !== (modeData.gameMode === "directions" && modeData.isDirectionRound);
+      if (isWrongType) return endGame("wrong_type");
 
       const buildUpdate = (): Partial<GameState> => isDir
         ? { modeData: { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase }
         : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData, input as Choice, getRandomChoice()) };
 
       if (phase === choosePhase) {
-        if (isWrongType) return endGame("wrong_type");
         if (modeData.playerInput !== null) return;
         set(buildUpdate());
         return;
       }
       if (gracePhase && phase === gracePhase) {
         if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
-        if (isWrongType) return endGame("wrong_type");
         if (modeData.playerInput !== null) return;
         set({ ...buildUpdate(), phase: choosePhase, phaseStartedAt: Date.now() });
         return;
