@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
   },
   modes: {
     paddingTop: 8,
+    gap: 12,
   },
   modeCard: {
     width: "100%",
