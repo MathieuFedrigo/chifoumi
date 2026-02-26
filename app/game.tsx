@@ -5,10 +5,9 @@ import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { useTheme } from "@/hooks/useTheme";
-import { useGameStore, useGameStoreActions } from "@/store/gameStore";
+import { useGameStore, useGameStoreActions, getChoosePhase, getGracePhase } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { useGameLoop } from "@/hooks/useGameLoop";
-import { COUNTDOWN_CHOOSE_PHASE, COUNTDOWN_GRACE_PHASE } from "@/store/gameStore";
 import type { Choice, Direction, GameMode, RoundResult } from "@/store/gameStore";
 import type { ComponentProps } from "react";
 
@@ -51,8 +50,8 @@ export default function GameScreen() {
   const isDirectionRound = modeData.gameMode === "directions" && modeData.isDirectionRound;
   const directionAttemptsLeft = modeData.gameMode === "directions" ? modeData.directionAttemptsLeft : 2;
   const countdownState = modeData.gameMode === "countdown" ? modeData.countdownState : null;
-  const choosePhase = countdownState !== null ? COUNTDOWN_CHOOSE_PHASE[countdownState] : "scissors";
-  const gracePhase = countdownState !== null ? COUNTDOWN_GRACE_PHASE[countdownState] : "paper";
+  const choosePhase = getChoosePhase(modeData);
+  const gracePhase = getGracePhase(modeData);
   let playerChoice: Choice | null = null;
   let aiChoice: Choice | null = null;
   let roundResult: RoundResult | null = null;

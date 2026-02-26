@@ -45,8 +45,23 @@ type CountdownModeData = {
 
 export type ModeData = ClassicModeData | DirectionsRpsPhase | DirectionsDirectionPhase | CountdownModeData;
 
-export const COUNTDOWN_CHOOSE_PHASE: Record<CountdownState, GamePhase> = { 3: "scissors", 2: "paper", 1: "rock" };
-export const COUNTDOWN_GRACE_PHASE: Record<CountdownState, GamePhase | null> = { 3: "paper", 2: "rock", 1: null };
+const COUNTDOWN_CHOOSE_PHASE: Record<CountdownState, GamePhase> = { 3: "scissors", 2: "paper", 1: "rock" };
+const COUNTDOWN_GRACE_PHASE: Record<CountdownState, GamePhase | null> = { 3: "paper", 2: "rock", 1: null };
+
+/** Which phase the player must input on */
+export const getChoosePhase = (modeData: ModeData): GamePhase =>
+  modeData.gameMode === "countdown" ? COUNTDOWN_CHOOSE_PHASE[modeData.countdownState] : "scissors";
+
+/** Which phase has a grace window (one beat before choose), or null */
+export const getGracePhase = (modeData: ModeData): GamePhase | null =>
+  modeData.gameMode === "countdown" ? COUNTDOWN_GRACE_PHASE[modeData.countdownState] : "paper";
+
+/** Next R-P-S phase, or null if already at/past choosePhase */
+const getNextPhase = (phase: GamePhase, choosePhase: GamePhase): GamePhase | null => {
+  if (phase === "rock" && choosePhase !== "rock") return "paper";
+  if (phase === "paper" && choosePhase === "scissors") return "scissors";
+  return null;
+};
 
 interface GameActions {
   startGame: (mode?: GameMode) => void;
@@ -169,84 +184,43 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const isDir = (DIRECTIONS as readonly string[]).includes(input);
 
       if (isDir && modeData.gameMode !== "directions") return;
+      if (phase === "idle" || phase === "result") return;
 
-      // Countdown mode: custom phase matching
-      if (modeData.gameMode === "countdown") {
-        const choosePhase = COUNTDOWN_CHOOSE_PHASE[modeData.countdownState];
-        const gracePhase = COUNTDOWN_GRACE_PHASE[modeData.countdownState];
+      const choosePhase = getChoosePhase(modeData);
+      const gracePhase = getGracePhase(modeData);
 
-        if (phase === choosePhase) {
-          if (modeData.playerInput !== null) return;
-          set({ modeData: buildRpsInputData(modeData, input as Choice, getRandomChoice()) as CountdownModeData });
-          return;
-        }
-        if (gracePhase && phase === gracePhase) {
-          if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
-          if (modeData.playerInput !== null) return;
-          set({ modeData: buildRpsInputData(modeData, input as Choice, getRandomChoice()) as CountdownModeData, phase: choosePhase as GamePhase, phaseStartedAt: Date.now() });
-          return;
-        }
-        return endGame("too_early");
-      }
-
-      if (phase === "rock") return endGame("too_early");
-
-      const isWrongType = isDir
-        ? modeData.gameMode === "directions" && !modeData.isDirectionRound
-        : modeData.gameMode === "directions" && modeData.isDirectionRound;
+      const isWrongType = isDir !== (modeData.gameMode === "directions" && modeData.isDirectionRound);
 
       const buildUpdate = (): Partial<GameState> => isDir
         ? { modeData: { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase }
-        : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase, input as Choice, getRandomChoice()) };
+        : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData, input as Choice, getRandomChoice()) };
 
-      if (phase === "paper") {
+      if (phase === choosePhase) {
+        if (isWrongType) return endGame("wrong_type");
+        if (modeData.playerInput !== null) return;
+        set(buildUpdate());
+        return;
+      }
+      if (gracePhase && phase === gracePhase) {
         if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
         if (isWrongType) return endGame("wrong_type");
         if (modeData.playerInput !== null) return;
-        set({ ...buildUpdate(), phase: "scissors", phaseStartedAt: Date.now() });
+        set({ ...buildUpdate(), phase: choosePhase, phaseStartedAt: Date.now() });
         return;
       }
-      if (phase !== "scissors") return;
-      if (isWrongType) return endGame("wrong_type");
-      if (modeData.playerInput !== null) return;
-      set(buildUpdate());
-      // phase stays "scissors" — beat timer will advance to result naturally
+      return endGame("too_early");
     },
 
     advancePhase: () => {
       const { phase, modeData, actions: { endGame } } = get();
+      const choosePhase = getChoosePhase(modeData);
 
-      // Countdown mode: custom phase progression
-      if (modeData.gameMode === "countdown") {
-        const choosePhase = COUNTDOWN_CHOOSE_PHASE[modeData.countdownState];
+      // Advance through R-P-S phases before choose
+      const nextPhase = getNextPhase(phase, choosePhase);
+      if (nextPhase) return set({ phase: nextPhase, phaseStartedAt: Date.now() });
 
-        if (phase !== choosePhase && phase !== "result") {
-          // Advance to next R-P-S phase
-          const next = phase === "rock" ? "paper" : "scissors";
-          return set({ phase: next as GamePhase, phaseStartedAt: Date.now() });
-        }
-        if (phase === choosePhase) {
-          if (modeData.playerInput !== null) {
-            set({ phase: "result", phaseStartedAt: Date.now() });
-          } else {
-            endGame("too_late");
-          }
-          return;
-        }
-        // phase === "result"
-        const nextCountdown: CountdownState = modeData.countdownState === 3 ? 2 : modeData.countdownState === 2 ? 1 : 3;
-        set((s) => ({
-          phase: "rock",
-          score: s.score + 1,
-          modeData: { ...COUNTDOWN_RESET, countdownState: nextCountdown },
-          phaseStartedAt: Date.now(),
-        }));
-        return;
-      }
-
-      if (phase === "rock") return set({ phase: "paper", phaseStartedAt: Date.now() });
-      if (phase === "paper") return set({ phase: "scissors", phaseStartedAt: Date.now() });
-      if (phase === "scissors") {
+      // Choose phase: resolve or too_late
+      if (phase === choosePhase) {
         if (modeData.playerInput !== null) {
           set({ phase: "result", phaseStartedAt: Date.now() });
         } else {
@@ -256,7 +230,19 @@ export const useGameStore = create<GameState>()((set, get) => ({
       }
       if (phase !== "result") return;
 
+      // Result phase: mode-specific handling
       if (modeData.gameMode === "classic") return set((s) => ({ phase: "rock", score: s.score + 1, modeData: CLASSIC_RESET, phaseStartedAt: Date.now() }));
+
+      if (modeData.gameMode === "countdown") {
+        const nextCountdown: CountdownState = modeData.countdownState === 3 ? 2 : modeData.countdownState === 2 ? 1 : 3;
+        set((s) => ({
+          phase: "rock",
+          score: s.score + 1,
+          modeData: { ...COUNTDOWN_RESET, countdownState: nextCountdown },
+          phaseStartedAt: Date.now(),
+        }));
+        return;
+      }
 
       if (!modeData.isDirectionRound) {
         // DirectionsRpsPhase result

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useGameStore, useGameStoreActions, COUNTDOWN_CHOOSE_PHASE } from "@/store/gameStore";
+import { useGameStore, useGameStoreActions, getChoosePhase } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 
 export const useGameLoop = () => {
@@ -9,9 +9,7 @@ export const useGameLoop = () => {
   const modeData = useGameStore((s) => s.modeData);
   const { advancePhase, endGame } = useGameStoreActions();
 
-  const isChoosePhase = modeData.gameMode === "countdown"
-    ? phase === COUNTDOWN_CHOOSE_PHASE[modeData.countdownState]
-    : phase === "scissors";
+  const isChoosePhase = phase === getChoosePhase(modeData);
 
   // Main beat timer — all phases use beatInterval
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { determineResult, getRandomChoice, getRandomDirection, useGameStore, COUNTDOWN_CHOOSE_PHASE, COUNTDOWN_GRACE_PHASE } from "@/store/gameStore";
+import { determineResult, getRandomChoice, getRandomDirection, useGameStore } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import type { Choice, CountdownState, Direction, GameMode, ModeData } from "@/store/gameStore";
 
