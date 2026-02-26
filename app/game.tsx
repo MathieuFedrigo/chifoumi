@@ -43,7 +43,7 @@ export default function GameScreen() {
   const mistakeReason = useGameStore((s) => s.mistakeReason);
   const phaseStartedAt = useGameStore((s) => s.phaseStartedAt);
   const modeData = useGameStore((s) => s.modeData);
-  const { startGame, makeChoice, makeDirectionChoice } = useGameStoreActions();
+  const { startGame, makeInput } = useGameStoreActions();
 
   // Narrow modeData into aliased variables matching the rest of the component
   const gameMode = modeData.gameMode;
@@ -88,7 +88,7 @@ export default function GameScreen() {
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-    makeChoice(choice);
+    makeInput(choice);
   };
 
   const handleDirectionChoice = (dir: Direction) => {
@@ -102,7 +102,7 @@ export default function GameScreen() {
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-    makeDirectionChoice(dir);
+    makeInput(dir);
   };
 
   const phaseText =

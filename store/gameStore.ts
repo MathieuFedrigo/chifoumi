@@ -38,8 +38,7 @@ export type ModeData = ClassicModeData | DirectionsRpsPhase | DirectionsDirectio
 
 interface GameActions {
   startGame: (mode?: GameMode) => void;
-  makeChoice: (choice: Choice) => void;
-  makeDirectionChoice: (direction: Direction) => void;
+  makeInput: (input: Choice | Direction) => void;
   advancePhase: () => void;
   endGame: (reason: MistakeReason) => void;
 }
@@ -142,47 +141,32 @@ export const useGameStore = create<GameState>()((set, get) => ({
       });
     },
 
-    makeChoice: (choice: Choice) => {
+    makeInput: (input: Choice | Direction) => {
       const { phase, score, phaseStartedAt, modeData, actions: { endGame } } = get();
-      if (phase === "rock") return endGame("too_early");
-      if (phase === "paper") {
-        if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
-        // grace period — treat as valid scissors input
-        if (modeData.gameMode === "directions" && modeData.isDirectionRound) return endGame("wrong_type");
-        const ai = getRandomChoice();
-        set({ modeData: buildRpsInputData(modeData, choice, ai), phase: "scissors", phaseStartedAt: Date.now() });
-        return;
-      }
-      if (phase !== "scissors") return;
-      // In directions mode, RPS press during direction round = wrong_type (check before playerInput guard)
-      if (modeData.gameMode === "directions" && modeData.isDirectionRound) return endGame("wrong_type");
-      if (modeData.playerInput !== null) return;
-      set({ modeData: buildRpsInputData(modeData, choice, getRandomChoice()) });
-      // phase stays "scissors" — beat timer will advance to result naturally
-    },
+      const isDir = (DIRECTIONS as readonly string[]).includes(input);
 
-    makeDirectionChoice: (direction: Direction) => {
-      const { phase, score, phaseStartedAt, modeData, actions: { endGame } } = get();
-      if (modeData.gameMode !== "directions") return;
+      if (isDir && modeData.gameMode !== "directions") return;
       if (phase === "rock") return endGame("too_early");
+
+      const isWrongType = isDir
+        ? modeData.gameMode === "directions" && !modeData.isDirectionRound
+        : modeData.gameMode === "directions" && modeData.isDirectionRound;
+
+      const buildUpdate = (): Partial<GameState> => isDir
+        ? { modeData: { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase }
+        : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase, input as Choice, getRandomChoice()) };
+
       if (phase === "paper") {
         if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
-        // grace period
-        if (!modeData.isDirectionRound) return endGame("wrong_type");
+        if (isWrongType) return endGame("wrong_type");
         if (modeData.playerInput !== null) return;
-        set({
-          modeData: { ...modeData, playerInput: direction, aiInput: getRandomDirection() },
-          phase: "scissors",
-          phaseStartedAt: Date.now(),
-        });
+        set({ ...buildUpdate(), phase: "scissors", phaseStartedAt: Date.now() });
         return;
       }
       if (phase !== "scissors") return;
-      if (!modeData.isDirectionRound) return endGame("wrong_type");
+      if (isWrongType) return endGame("wrong_type");
       if (modeData.playerInput !== null) return;
-      set({
-        modeData: { ...modeData, playerInput: direction, aiInput: getRandomDirection() },
-      });
+      set(buildUpdate());
       // phase stays "scissors" — beat timer will advance to result naturally
     },
 
