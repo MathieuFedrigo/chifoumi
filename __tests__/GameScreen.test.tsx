@@ -653,3 +653,168 @@ describe("GameScreen – Directions mode", () => {
     expect(screen.getByLabelText("Up")).toBeTruthy();
   });
 });
+
+const renderCountdownApp = () => {
+  return renderRouter(
+    { "game": GameScreen },
+    { initialUrl: "/game?mode=countdown" }
+  );
+};
+
+describe("GameScreen – Countdown mode", () => {
+  it("renders with countdown mode and shows countdown indicator", () => {
+    renderCountdownApp();
+
+    expect(screen.getByText("Rock!")).toBeTruthy();
+    expect(screen.getByText("Score: 0")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy(); // countdown state indicator
+  });
+
+  it("state 3: full R-P-S cycle, input on scissors shows result", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    advanceToScissors();
+    expect(screen.getByText("Scissors!")).toBeTruthy();
+
+    await user.press(screen.getByLabelText("Paper!"));
+    expect(screen.getByText("You Win!")).toBeTruthy();
+    expect(Haptics.impactAsync).toHaveBeenCalledWith(
+      Haptics.ImpactFeedbackStyle.Light
+    );
+  });
+
+  it("state 2: input on paper (choose phase) shows result", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    // Complete state 3
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!")); // draw
+    advanceResultToRock();
+
+    // State 2: paper is choose phase
+    expect(screen.getByText("2")).toBeTruthy();
+    const { beatInterval } = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
+    expect(screen.getByText("Paper!")).toBeTruthy();
+
+    await user.press(screen.getByLabelText("Paper!"));
+    expect(screen.getByText("You Win!")).toBeTruthy();
+  });
+
+  it("state 1: input on rock (choose phase) shows result", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    // Complete state 3
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!"));
+    advanceResultToRock();
+    // Complete state 2
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Rock!"));
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // paper → result
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock
+
+    // State 1: rock is choose phase
+    expect(screen.getByText("1")).toBeTruthy();
+    expect(screen.getByText("Rock!")).toBeTruthy();
+
+    await user.press(screen.getByLabelText("Paper!"));
+    expect(screen.getByText("You Win!")).toBeTruthy();
+  });
+
+  it("too early on rock in state 3", async () => {
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    await user.press(screen.getByLabelText("Rock!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too early!")).toBeTruthy();
+  });
+
+  it("too late in state 3 when missing scissors window", () => {
+    renderCountdownApp();
+
+    advanceToTimeout();
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too late!")).toBeTruthy();
+  });
+
+  it("too late in state 2 when missing paper window (grace timer)", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    // Complete state 3
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!"));
+    advanceResultToRock();
+
+    // State 2: paper is choose phase
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    // Let grace timer expire
+    act(() => { jest.advanceTimersByTime(t1.graceAfter); });
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too late!")).toBeTruthy();
+  });
+
+  it("restarting countdown game stays in countdown mode", async () => {
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    advanceToTimeout();
+    expect(screen.getByText("Game Over")).toBeTruthy();
+
+    await user.press(screen.getByText("Play Again"));
+
+    expect(screen.getByText("Rock!")).toBeTruthy();
+    expect(screen.getByText("Score: 0")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
+  });
+
+  it("navigates to countdown game from home", async () => {
+    const user = userEvent.setup();
+    const { getPathname } = renderRouter(
+      { "index": HomeScreen, "game": GameScreen, "settings": () => <Text>{"Settings"}</Text> },
+      { initialUrl: "/" }
+    );
+
+    await user.press(screen.getByText("3-2-1"));
+    expect(getPathname()).toBe("/game");
+    expect(screen.getByText("3")).toBeTruthy(); // countdown indicator
+  });
+
+  it("buttons enabled on choose phase and grace phase in state 3", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    // During paper (grace phase for state 3), grace period input should work
+    const { beatInterval, graceBefore } = getRoundTimings(0);
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
+    act(() => { jest.advanceTimersByTime(beatInterval - graceBefore); }); // into grace
+
+    await user.press(screen.getByLabelText("Paper!"));
+    expect(screen.getByText("You Win!")).toBeTruthy();
+    expect(Haptics.impactAsync).toHaveBeenCalledWith(
+      Haptics.ImpactFeedbackStyle.Light
+    );
+  });
+
+  it("does not show direction buttons in countdown mode", () => {
+    renderCountdownApp();
+
+    expect(screen.queryByLabelText("Up")).toBeNull();
+    expect(screen.queryByLabelText("Down")).toBeNull();
+  });
+});

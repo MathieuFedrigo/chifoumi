@@ -9,6 +9,7 @@ export default {
     title: "Chifoumi",
     classicMode: "Classique",
     directionsMode: "Directions",
+    countdownMode: "3-2-1",
   },
   game: {
     title: "Chifoumi",
@@ -29,6 +30,7 @@ export default {
     aiConfirms: "Ils ont confirmé !",
     directionMiss: "Mauvaise direction !",
     vs: "vs",
+    countdownState: "{{count}}",
     attemptsLeft_one: "{{count}} essai restant",
     attemptsLeft_other: "{{count}} essais restants",
     result: {

@@ -7,6 +7,7 @@ import { useTheme } from "@/hooks/useTheme";
 const GAME_MODES = [
   { key: "classic", labelKey: "home.classicMode", route: "/game" },
   { key: "directions", labelKey: "home.directionsMode", route: "/game?mode=directions" },
+  { key: "countdown", labelKey: "home.countdownMode", route: "/game?mode=countdown" },
 ] as const;
 
 export default function HomeScreen() {

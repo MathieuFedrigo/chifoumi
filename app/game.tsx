@@ -8,6 +8,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useGameStore, useGameStoreActions } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { useGameLoop } from "@/hooks/useGameLoop";
+import { COUNTDOWN_CHOOSE_PHASE, COUNTDOWN_GRACE_PHASE } from "@/store/gameStore";
 import type { Choice, Direction, GameMode, RoundResult } from "@/store/gameStore";
 import type { ComponentProps } from "react";
 
@@ -33,7 +34,7 @@ export default function GameScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
-  const urlMode: GameMode = modeParam === "directions" ? "directions" : "classic";
+  const urlMode: GameMode = modeParam === "directions" ? "directions" : modeParam === "countdown" ? "countdown" : "classic";
 
   useGameLoop();
 
@@ -48,7 +49,10 @@ export default function GameScreen() {
   // Narrow modeData into aliased variables matching the rest of the component
   const gameMode = modeData.gameMode;
   const isDirectionRound = modeData.gameMode === "directions" && modeData.isDirectionRound;
-  const directionAttemptsLeft = modeData.gameMode !== "classic" ? modeData.directionAttemptsLeft : 2;
+  const directionAttemptsLeft = modeData.gameMode === "directions" ? modeData.directionAttemptsLeft : 2;
+  const countdownState = modeData.gameMode === "countdown" ? modeData.countdownState : null;
+  const choosePhase = countdownState !== null ? COUNTDOWN_CHOOSE_PHASE[countdownState] : "scissors";
+  const gracePhase = countdownState !== null ? COUNTDOWN_GRACE_PHASE[countdownState] : "paper";
   let playerChoice: Choice | null = null;
   let aiChoice: Choice | null = null;
   let roundResult: RoundResult | null = null;
@@ -82,8 +86,8 @@ export default function GameScreen() {
     if (!isPlaying) return;
     const elapsed = Date.now() - phaseStartedAt;
     const timings = getRoundTimings(score);
-    const inGracePeriod = phase === "paper" && elapsed >= timings.beatInterval - timings.graceBefore;
-    if (phase === "scissors" || inGracePeriod) {
+    const inGracePeriod = gracePhase !== null && phase === gracePhase && elapsed >= timings.beatInterval - timings.graceBefore;
+    if (phase === choosePhase || inGracePeriod) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -95,8 +99,8 @@ export default function GameScreen() {
     if (!isPlaying) return;
     const elapsed = Date.now() - phaseStartedAt;
     const timings = getRoundTimings(score);
-    const inGracePeriod = phase === "paper" && elapsed >= timings.beatInterval - timings.graceBefore;
-    const isValidTiming = (phase === "scissors" || inGracePeriod) && isDirectionRound;
+    const inGracePeriod = gracePhase !== null && phase === gracePhase && elapsed >= timings.beatInterval - timings.graceBefore;
+    const isValidTiming = (phase === choosePhase || inGracePeriod) && isDirectionRound;
     if (isValidTiming) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
@@ -141,11 +145,14 @@ export default function GameScreen() {
     return t("game.directionMiss");
   })();
 
-  const showRpsResult = !isDirectionRound && (phase === "result" || (phase === "scissors" && !!playerChoice));
+  const showRpsResult = !isDirectionRound && (phase === "result" || (phase === choosePhase && !!playerChoice));
   const showDirectionResult =
     isDirectionRound && (phase === "result" || (phase === "scissors" && !!playerDirectionChoice));
 
-  const rpsButtonsDisabled = (phase !== "scissors" || !!playerChoice || isDirectionRound) && isPlaying;
+  const rpsButtonsEnabled = gameMode === "countdown"
+    ? (phase === choosePhase || (gracePhase !== null && phase === gracePhase)) && !playerChoice
+    : (phase === "scissors" && !playerChoice && !isDirectionRound);
+  const rpsButtonsDisabled = !rpsButtonsEnabled && isPlaying;
   const directionButtonsDisabled = (phase !== "scissors" || !!playerDirectionChoice) && isPlaying;
   const isGameOver = !isPlaying && !!mistakeReason;
 
@@ -165,9 +172,16 @@ export default function GameScreen() {
         ) : (
           <View style={styles.topBarSpacer} />
         )}
-        <Text style={[styles.score, { color: theme.colors.text }]}>
-          {t("game.score", { count: score })}
-        </Text>
+        <View style={styles.scoreRow}>
+          <Text style={[styles.score, { color: theme.colors.text }]}>
+            {t("game.score", { count: score })}
+          </Text>
+          {countdownState !== null && (
+            <Text style={[styles.countdownIndicator, { color: theme.colors.textSecondary }]}>
+              {t("game.countdownState", { count: countdownState })}
+            </Text>
+          )}
+        </View>
         <View style={styles.topBarSpacer} />
       </View>
 
@@ -361,10 +375,19 @@ const styles = StyleSheet.create({
   topBarSpacer: {
     width: 20,
   },
+  scoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   score: {
     fontSize: 24,
     fontWeight: "700",
     textAlign: "center",
+  },
+  countdownIndicator: {
+    fontSize: 18,
+    fontWeight: "600",
   },
   center: {
     flex: 1,

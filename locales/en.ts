@@ -3,6 +3,7 @@ const en = {
     title: "Chifoumi",
     classicMode: "Classic",
     directionsMode: "Directions",
+    countdownMode: "3-2-1",
   },
   game: {
     title: "Chifoumi",
@@ -23,6 +24,7 @@ const en = {
     aiConfirms: "They confirmed!",
     directionMiss: "Wrong direction!",
     vs: "vs",
+    countdownState: "{{count}}",
     attemptsLeft_one: "{{count}} try left",
     attemptsLeft_other: "{{count}} tries left",
     result: {

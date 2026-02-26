@@ -1,12 +1,17 @@
 import { useEffect } from "react";
-import { useGameStore, useGameStoreActions } from "@/store/gameStore";
+import { useGameStore, useGameStoreActions, COUNTDOWN_CHOOSE_PHASE } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 
 export const useGameLoop = () => {
   const isPlaying = useGameStore((s) => s.isPlaying);
   const phase = useGameStore((s) => s.phase);
   const score = useGameStore((s) => s.score);
+  const modeData = useGameStore((s) => s.modeData);
   const { advancePhase, endGame } = useGameStoreActions();
+
+  const isChoosePhase = modeData.gameMode === "countdown"
+    ? phase === COUNTDOWN_CHOOSE_PHASE[modeData.countdownState]
+    : phase === "scissors";
 
   // Main beat timer — all phases use beatInterval
   useEffect(() => {
@@ -21,9 +26,9 @@ export const useGameLoop = () => {
     return () => clearTimeout(timer);
   }, [isPlaying, phase, score, advancePhase]);
 
-  // Grace deadline timer — only during scissors phase
+  // Grace deadline timer — only during choose phase
   useEffect(() => {
-    if (!isPlaying || phase !== "scissors") return;
+    if (!isPlaying || !isChoosePhase) return;
 
     const { graceAfter } = getRoundTimings(score);
 
@@ -35,5 +40,5 @@ export const useGameLoop = () => {
     }, graceAfter);
 
     return () => clearTimeout(timer);
-  }, [isPlaying, phase, score, endGame]);
+  }, [isPlaying, isChoosePhase, score, endGame]);
 };
