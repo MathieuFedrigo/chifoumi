@@ -185,6 +185,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
       if (isDir && modeData.gameMode !== "directions") return;
       if (phase === "idle" || phase === "result") return;
+      if (modeData.playerInput !== null) return;
 
       const choosePhase = getChoosePhase(modeData);
       const gracePhase = getGracePhase(modeData);
@@ -197,13 +198,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
         : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData, input as Choice, getRandomChoice()) };
 
       if (phase === choosePhase) {
-        if (modeData.playerInput !== null) return;
         set(buildUpdate());
         return;
       }
-      if (gracePhase && phase === gracePhase) {
+      if (phase === gracePhase) {
         if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
-        if (modeData.playerInput !== null) return;
         set({ ...buildUpdate(), phase: choosePhase, phaseStartedAt: Date.now() });
         return;
       }
