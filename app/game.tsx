@@ -9,6 +9,7 @@ import { useGameStore, useGameStoreActions, getChoosePhase, getGracePhase } from
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { useGameLoop } from "@/hooks/useGameLoop";
 import type { Choice, Direction, GameMode, RoundResult } from "@/store/gameStore";
+import type { Theme } from "@/constants/theme";
 import type { ComponentProps } from "react";
 
 type IconName = ComponentProps<typeof FontAwesome5>["name"];
@@ -26,7 +27,6 @@ const DIRECTION_ICONS: Record<Direction, IconName> = {
   right: "arrow-right",
 };
 
-const DIRECTIONS: Direction[] = ["up", "down", "left", "right"];
 const CHOICES = ["rock", "paper", "scissors"] as const;
 
 export default function GameScreen() {
@@ -297,63 +297,25 @@ export default function GameScreen() {
         ) : null}
       </View>
 
-      {gameMode === "directions" && (
-        <View style={styles.directionButtons}>
-          {DIRECTIONS.map((dir) => (
-            <Pressable
-              key={dir}
-              style={[
-                styles.choiceButton,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  opacity: directionButtonsDisabled ? 0.4 : 1,
-                },
-              ]}
-              onPress={() => handleDirectionChoice(dir)}
-              accessibilityRole="button"
-              accessibilityLabel={t(
-                `game.direction.${dir}` as
-                  | "game.direction.up"
-                  | "game.direction.down"
-                  | "game.direction.left"
-                  | "game.direction.right"
-              )}
-            >
-              <FontAwesome5
-                name={DIRECTION_ICONS[dir]}
-                size={32}
-                color={theme.colors.text}
-              />
-            </Pressable>
-          ))}
+      {gameMode === "directions" ? (
+        <View style={styles.gameButtonsRow}>
+          <View style={styles.directionButtons}>
+            <View style={styles.directionRow}>
+              <DirBtn dir="up" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} />
+            </View>
+            <View style={styles.directionMiddleRow}>
+              <DirBtn dir="left" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} />
+              <DirBtn dir="right" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} />
+            </View>
+            <View style={styles.directionRow}>
+              <DirBtn dir="down" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} />
+            </View>
+          </View>
+          <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} />
         </View>
+      ) : (
+        <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} />
       )}
-
-      <View style={styles.choiceButtons}>
-        {CHOICES.map((choice) => (
-          <Pressable
-            key={choice}
-            style={[
-              styles.choiceButton,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-                opacity: rpsButtonsDisabled ? 0.4 : 1,
-              },
-            ]}
-            onPress={() => handleChoice(choice)}
-            accessibilityRole="button"
-            accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
-          >
-            <FontAwesome5
-              name={CHOICE_ICONS[choice]}
-              size={40}
-              color={theme.colors.text}
-            />
-          </Pressable>
-        ))}
-      </View>
     </View>
   );
 }
@@ -451,16 +413,32 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
   },
-  directionButtons: {
+  gameButtonsRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
-    gap: 16,
-    marginBottom: 12,
+    gap: 24,
+  },
+  directionButtons: {
+    alignItems: "center",
+    gap: 8,
+  },
+  directionRow: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  directionMiddleRow: {
+    flexDirection: "row",
+    gap: 64,
   },
   choiceButtons: {
+    alignItems: "center",
+    gap: 12,
+  },
+  rpsButtonRow: {
     flexDirection: "row",
-    justifyContent: "center",
     gap: 20,
+    justifyContent: "center",
   },
   choiceButton: {
     width: 80,
@@ -471,3 +449,79 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
 });
+
+interface DirBtnProps {
+  dir: Direction;
+  onPress: (dir: Direction) => void;
+  disabled: boolean;
+  colors: Theme["colors"];
+}
+
+function DirBtn({ dir, onPress, disabled, colors }: DirBtnProps) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      style={[
+        styles.choiceButton,
+        { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1 },
+      ]}
+      onPress={() => onPress(dir)}
+      accessibilityRole="button"
+      accessibilityLabel={t(
+        `game.direction.${dir}` as
+          | "game.direction.up"
+          | "game.direction.down"
+          | "game.direction.left"
+          | "game.direction.right"
+      )}
+    >
+      <FontAwesome5 name={DIRECTION_ICONS[dir]} size={32} color={colors.text} />
+    </Pressable>
+  );
+}
+
+interface RpsChoicesProps {
+  onPress: (choice: Choice) => void;
+  disabled: boolean;
+  colors: Theme["colors"];
+}
+
+function RpsChoices({ onPress, disabled, colors }: RpsChoicesProps) {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.choiceButtons}>
+      <View style={styles.rpsButtonRow}>
+        {CHOICES.slice(0, 2).map((choice) => (
+          <Pressable
+            key={choice}
+            style={[
+              styles.choiceButton,
+              { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1 },
+            ]}
+            onPress={() => onPress(choice)}
+            accessibilityRole="button"
+            accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
+          >
+            <FontAwesome5 name={CHOICE_ICONS[choice]} size={40} color={colors.text} />
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.rpsButtonRow}>
+        {CHOICES.slice(2).map((choice) => (
+          <Pressable
+            key={choice}
+            style={[
+              styles.choiceButton,
+              { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1 },
+            ]}
+            onPress={() => onPress(choice)}
+            accessibilityRole="button"
+            accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
+          >
+            <FontAwesome5 name={CHOICE_ICONS[choice]} size={40} color={colors.text} />
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
