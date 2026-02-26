@@ -300,18 +300,20 @@ export default function GameScreen() {
       {gameMode === "directions" ? (
         <View style={styles.gameButtonsRow}>
           <View style={styles.directionButtons}>
-            <View style={styles.directionRow}>
-              <DirBtn dir="up" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} />
+            <View style={{ position: "absolute", top: 0, left: 56 }}>
+              <DirBtn dir="up" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
             </View>
-            <View style={styles.directionMiddleRow}>
-              <DirBtn dir="left" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} />
-              <DirBtn dir="right" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} />
+            <View style={{ position: "absolute", top: 56, left: 0 }}>
+              <DirBtn dir="left" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
             </View>
-            <View style={styles.directionRow}>
-              <DirBtn dir="down" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} />
+            <View style={{ position: "absolute", top: 56, left: 112 }}>
+              <DirBtn dir="right" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
+            </View>
+            <View style={{ position: "absolute", top: 112, left: 56 }}>
+              <DirBtn dir="down" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
             </View>
           </View>
-          <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} />
+          <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} buttonSize={68} rowGap={8} />
         </View>
       ) : (
         <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} />
@@ -417,19 +419,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 24,
+    gap: 16,
   },
   directionButtons: {
-    alignItems: "center",
-    gap: 8,
-  },
-  directionRow: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  directionMiddleRow: {
-    flexDirection: "row",
-    gap: 64,
+    width: 168,
+    height: 168,
   },
   choiceButtons: {
     alignItems: "center",
@@ -455,15 +449,16 @@ interface DirBtnProps {
   onPress: (dir: Direction) => void;
   disabled: boolean;
   colors: Theme["colors"];
+  size?: number;
 }
 
-function DirBtn({ dir, onPress, disabled, colors }: DirBtnProps) {
+function DirBtn({ dir, onPress, disabled, colors, size = 80 }: DirBtnProps) {
   const { t } = useTranslation();
   return (
     <Pressable
       style={[
         styles.choiceButton,
-        { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1 },
+        { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1, width: size, height: size, borderRadius: size * 0.12, transform: [{ rotate: "45deg" }] },
       ]}
       onPress={() => onPress(dir)}
       accessibilityRole="button"
@@ -475,7 +470,9 @@ function DirBtn({ dir, onPress, disabled, colors }: DirBtnProps) {
           | "game.direction.right"
       )}
     >
-      <FontAwesome5 name={DIRECTION_ICONS[dir]} size={32} color={colors.text} />
+      <View style={{ transform: [{ rotate: "-45deg" }] }}>
+        <FontAwesome5 name={DIRECTION_ICONS[dir]} size={32} color={colors.text} />
+      </View>
     </Pressable>
   );
 }
@@ -484,19 +481,21 @@ interface RpsChoicesProps {
   onPress: (choice: Choice) => void;
   disabled: boolean;
   colors: Theme["colors"];
+  buttonSize?: number;
+  rowGap?: number;
 }
 
-function RpsChoices({ onPress, disabled, colors }: RpsChoicesProps) {
+function RpsChoices({ onPress, disabled, colors, buttonSize = 80, rowGap = 20 }: RpsChoicesProps) {
   const { t } = useTranslation();
   return (
     <View style={styles.choiceButtons}>
-      <View style={styles.rpsButtonRow}>
+      <View style={[styles.rpsButtonRow, { gap: rowGap }]}>
         {CHOICES.slice(0, 2).map((choice) => (
           <Pressable
             key={choice}
             style={[
               styles.choiceButton,
-              { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1 },
+              { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
             ]}
             onPress={() => onPress(choice)}
             accessibilityRole="button"
@@ -506,13 +505,13 @@ function RpsChoices({ onPress, disabled, colors }: RpsChoicesProps) {
           </Pressable>
         ))}
       </View>
-      <View style={styles.rpsButtonRow}>
+      <View style={[styles.rpsButtonRow, { gap: rowGap }]}>
         {CHOICES.slice(2).map((choice) => (
           <Pressable
             key={choice}
             style={[
               styles.choiceButton,
-              { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1 },
+              { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
             ]}
             onPress={() => onPress(choice)}
             accessibilityRole="button"
