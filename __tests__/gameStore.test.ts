@@ -48,7 +48,7 @@ const mdIsDirectionRound = () => {
 };
 const mdDirectionAttemptsLeft = () => {
   const m = md();
-  if (m.gameMode === "classic") throw new Error("Not in directions mode");
+  if (m.gameMode !== "directions") throw new Error("Not in directions mode");
   return m.directionAttemptsLeft;
 };
 const mdPendingRpsResult = () => {
