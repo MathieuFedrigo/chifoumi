@@ -307,13 +307,13 @@ export const useGameStore = create<GameState>()((set, get) => ({
           return set(nextRockRound({ ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] }));
 
         case "countdownDirections": {
-          const nextState = NEXT_COUNTDOWN_STATE[modeData.countdownState];
+          const nextCountdownState = NEXT_COUNTDOWN_STATE[modeData.countdownState];
           if (!modeData.isDirectionRound) {
             if (modeData.roundResult === "draw")
-              return set(nextRockRound({ ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }));
+              return set(nextRockRound({ ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCountdownState }));
             return set(nextRockRound({
               gameMode: "countdownDirections",
-              countdownState: nextState,
+              countdownState: nextCountdownState,
               isDirectionRound: true,
               playerInput: null,
               aiInput: null,
@@ -322,8 +322,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
             }));
           }
           return set(resolveDirectionRound({
-            modeData: { ...modeData, countdownState: nextState },
-            resetData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState },
+            modeData: { ...modeData, countdownState: nextCountdownState },
+            resetData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCountdownState },
           }));
         }
 
