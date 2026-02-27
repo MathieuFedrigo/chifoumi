@@ -129,56 +129,41 @@ export const getRandomDirection = (): Direction => {
   return DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)]!;
 };
 
+const RPS_PHASE_BASE = { playerInput: null, aiInput: null, roundResult: null } as const;
+const DIR_PHASE_BASE = { playerInput: null, aiInput: null, directionAttemptsLeft: 2 } as const;
 const CLASSIC_RESET: ClassicModeData = {
   gameMode: "classic",
-  playerInput: null,
-  aiInput: null,
-  roundResult: null,
+  ...RPS_PHASE_BASE,
 };
-
 const DIRECTIONS_RPS_RESET: DirectionsRpsPhase = {
   gameMode: "directions",
+  ...RPS_PHASE_BASE,
   isDirectionRound: false,
-  playerInput: null,
-  aiInput: null,
-  roundResult: null,
   directionAttemptsLeft: 2,
 };
-
 const COUNTDOWN_RESET: CountdownModeData = {
   gameMode: "countdown",
+  ...RPS_PHASE_BASE,
   countdownState: 3,
-  playerInput: null,
-  aiInput: null,
-  roundResult: null,
 };
-
 const COUNTDOWN_DIR_RPS_RESET: CountdownDirRpsPhase = {
   gameMode: "countdownDirections",
+  ...RPS_PHASE_BASE,
   countdownState: 3,
   isDirectionRound: false,
-  playerInput: null,
-  aiInput: null,
-  roundResult: null,
   directionAttemptsLeft: 2,
 };
-
 const DIRECTIONS_DIR_RESET = {
-  gameMode: "directions" as const,
-  isDirectionRound: true as const,
-  playerInput: null,
-  aiInput: null,
-  directionAttemptsLeft: 2,
-};
-
+  gameMode: "directions" ,
+  ...DIR_PHASE_BASE,
+  isDirectionRound: true ,
+} as const;
 const COUNTDOWN_DIR_DIR_RESET = {
-  gameMode: "countdownDirections" as const,
-  countdownState: 3 as CountdownState,
-  isDirectionRound: true as const,
-  playerInput: null,
-  aiInput: null,
-  directionAttemptsLeft: 2,
-};
+  gameMode: "countdownDirections" ,
+  ...DIR_PHASE_BASE,
+  isDirectionRound: true ,
+  countdownState: 3,
+} as const;
 
 const isGracePeriodActive = ({ phaseStartedAt, score }: { phaseStartedAt: number; score: number }): boolean => {
   const { beatInterval, graceBefore } = getRoundTimings(score);
