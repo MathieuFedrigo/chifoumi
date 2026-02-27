@@ -80,6 +80,21 @@ describe("HomeScreen", () => {
     expect(getPathname()).toBe("/game");
   });
 
+  it("renders 3-2-1 Directions mode button", () => {
+    renderHome();
+
+    expect(screen.getByText("3-2-1 Directions")).toBeTruthy();
+  });
+
+  it("navigates to game when 3-2-1 Directions is pressed", async () => {
+    const user = userEvent.setup();
+    const { getPathname } = renderHome();
+
+    await user.press(screen.getByText("3-2-1 Directions"));
+
+    expect(getPathname()).toBe("/game");
+  });
+
   it("applies dark theme colors", () => {
     useColorSchemeMock.mockReturnValue("dark");
     renderHome();

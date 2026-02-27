@@ -7,7 +7,7 @@ export type GamePhase = "idle" | "rock" | "paper" | "scissors" | "result";
 export type RoundResult = "win" | "lose" | "draw";
 export type MistakeReason = "too_early" | "too_late" | "wrong_type";
 export type Direction = "up" | "down" | "left" | "right";
-export type GameMode = "classic" | "directions" | "countdown";
+export type GameMode = "classic" | "directions" | "countdown" | "countdownDirections";
 export type CountdownState = 3 | 2 | 1;
 
 type ClassicModeData = {
@@ -43,18 +43,42 @@ type CountdownModeData = {
   roundResult: RoundResult | null;
 };
 
-export type ModeData = ClassicModeData | DirectionsRpsPhase | DirectionsDirectionPhase | CountdownModeData;
+type CountdownDirRpsPhase = {
+  gameMode: "countdownDirections";
+  countdownState: CountdownState;
+  isDirectionRound: false;
+  playerInput: Choice | null;
+  aiInput: Choice | null;
+  roundResult: RoundResult | null;
+  directionAttemptsLeft: number;
+};
+
+type CountdownDirDirectionPhase = {
+  gameMode: "countdownDirections";
+  countdownState: CountdownState;
+  isDirectionRound: true;
+  playerInput: Direction | null;
+  aiInput: Direction | null;
+  pendingRpsResult: RoundResult;
+  directionAttemptsLeft: number;
+};
+
+export type ModeData = ClassicModeData | DirectionsRpsPhase | DirectionsDirectionPhase | CountdownModeData | CountdownDirRpsPhase | CountdownDirDirectionPhase;
 
 const COUNTDOWN_CHOOSE_PHASE: Record<CountdownState, GamePhase> = { 3: "scissors", 2: "paper", 1: "rock" };
 const COUNTDOWN_GRACE_PHASE: Record<CountdownState, GamePhase | null> = { 3: "paper", 2: "rock", 1: null };
 
 /** Which phase the player must input on */
 export const getChoosePhase = (modeData: ModeData): GamePhase =>
-  modeData.gameMode === "countdown" ? COUNTDOWN_CHOOSE_PHASE[modeData.countdownState] : "scissors";
+  modeData.gameMode === "countdown" || modeData.gameMode === "countdownDirections"
+    ? COUNTDOWN_CHOOSE_PHASE[modeData.countdownState]
+    : "scissors";
 
 /** Which phase has a grace window (one beat before choose), or null */
 export const getGracePhase = (modeData: ModeData): GamePhase | null =>
-  modeData.gameMode === "countdown" ? COUNTDOWN_GRACE_PHASE[modeData.countdownState] : "paper";
+  modeData.gameMode === "countdown" || modeData.gameMode === "countdownDirections"
+    ? COUNTDOWN_GRACE_PHASE[modeData.countdownState]
+    : "paper";
 
 /** Next R-P-S phase, or null if already at/past choosePhase */
 const getNextPhase = (phase: GamePhase, choosePhase: GamePhase): GamePhase | null => {
@@ -129,22 +153,43 @@ const COUNTDOWN_RESET: CountdownModeData = {
   roundResult: null,
 };
 
+const COUNTDOWN_DIR_RPS_RESET: CountdownDirRpsPhase = {
+  gameMode: "countdownDirections",
+  countdownState: 3,
+  isDirectionRound: false,
+  playerInput: null,
+  aiInput: null,
+  roundResult: null,
+  directionAttemptsLeft: 2,
+};
+
 const isGracePeriodActive = (phaseStartedAt: number, score: number): boolean => {
   const { beatInterval, graceBefore } = getRoundTimings(score);
   return Date.now() - phaseStartedAt >= beatInterval - graceBefore;
 };
 
 const buildRpsInputData = (
-  modeData: ClassicModeData | DirectionsRpsPhase | CountdownModeData,
+  modeData: ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase,
   choice: Choice,
   ai: Choice
-): ClassicModeData | DirectionsRpsPhase | CountdownModeData => {
+): ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase => {
   const roundResult = determineResult(choice, ai);
   if (modeData.gameMode === "classic") {
     return { gameMode: "classic", playerInput: choice, aiInput: ai, roundResult };
   }
   if (modeData.gameMode === "countdown") {
     return { gameMode: "countdown", countdownState: modeData.countdownState, playerInput: choice, aiInput: ai, roundResult };
+  }
+  if (modeData.gameMode === "countdownDirections") {
+    return {
+      gameMode: "countdownDirections",
+      countdownState: modeData.countdownState,
+      isDirectionRound: false,
+      playerInput: choice,
+      aiInput: ai,
+      roundResult,
+      directionAttemptsLeft: modeData.directionAttemptsLeft,
+    };
   }
   return {
     gameMode: "directions",
@@ -177,7 +222,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         isPlaying: true,
         mistakeReason: null,
         phaseStartedAt: Date.now(),
-        modeData: mode === "classic" ? CLASSIC_RESET : mode === "countdown" ? COUNTDOWN_RESET : DIRECTIONS_RPS_RESET,
+        modeData: mode === "classic" ? CLASSIC_RESET : mode === "countdown" ? COUNTDOWN_RESET : mode === "countdownDirections" ? COUNTDOWN_DIR_RPS_RESET : DIRECTIONS_RPS_RESET,
       });
     },
 
@@ -185,19 +230,20 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const { phase, score, phaseStartedAt, modeData, actions: { endGame } } = get();
       const isDir = (DIRECTIONS as readonly string[]).includes(input);
 
-      if (isDir && modeData.gameMode !== "directions") return;
+      if (isDir && modeData.gameMode !== "directions" && modeData.gameMode !== "countdownDirections") return;
       if (phase === "idle" || phase === "result") return;
       if (modeData.playerInput !== null) return;
 
       const choosePhase = getChoosePhase(modeData);
       const gracePhase = getGracePhase(modeData);
 
-      const isWrongType = isDir !== (modeData.gameMode === "directions" && modeData.isDirectionRound);
+      const expectsDirection = (modeData.gameMode === "directions" || modeData.gameMode === "countdownDirections") && modeData.isDirectionRound;
+      const isWrongType = isDir !== expectsDirection;
       if (isWrongType) return endGame("wrong_type");
 
       const buildUpdate = (): Partial<GameState> => isDir
-        ? { modeData: { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase }
-        : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData, input as Choice, getRandomChoice()) };
+        ? { modeData: { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase | CountdownDirDirectionPhase }
+        : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase, input as Choice, getRandomChoice()) };
 
       if (phase === choosePhase) return set(buildUpdate());
       if (phase === gracePhase) {
@@ -232,6 +278,37 @@ export const useGameStore = create<GameState>()((set, get) => ({
           phaseStartedAt: Date.now(),
         });
 
+      if (modeData.gameMode === "countdownDirections") {
+        const nextState = NEXT_COUNTDOWN_STATE[modeData.countdownState];
+        if (!modeData.isDirectionRound) {
+          if (modeData.roundResult === "draw")
+            return set({ phase: "rock", modeData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }, phaseStartedAt: Date.now() });
+          return set({
+            phase: "rock",
+            modeData: {
+              gameMode: "countdownDirections",
+              countdownState: nextState,
+              isDirectionRound: true,
+              playerInput: null,
+              aiInput: null,
+              pendingRpsResult: modeData.roundResult!,
+              directionAttemptsLeft: 2,
+            },
+            phaseStartedAt: Date.now(),
+          });
+        }
+        const matched = modeData.playerInput === modeData.aiInput;
+        if (matched)
+          return set({ phase: "rock", modeData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }, phaseStartedAt: Date.now() });
+        if (modeData.directionAttemptsLeft > 1)
+          return set({
+            phase: "rock",
+            modeData: { ...modeData, countdownState: nextState, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },
+            phaseStartedAt: Date.now(),
+          });
+        return set({ phase: "rock", modeData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }, phaseStartedAt: Date.now() });
+      }
+
       if (!modeData.isDirectionRound) {
         // DirectionsRpsPhase result
         if (modeData.roundResult === "draw") return set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
@@ -254,7 +331,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const matched = modeData.playerInput === modeData.aiInput;
       if (matched) return set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
       // more attempts: new direction round
-      if (modeData.directionAttemptsLeft > 1) 
+      if (modeData.directionAttemptsLeft > 1)
         return set({
           phase: "rock",
           modeData: { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },

@@ -10,6 +10,7 @@ export default {
     classicMode: "Classique",
     directionsMode: "Directions",
     countdownMode: "3-2-1",
+    countdownDirectionsMode: "3-2-1 Directions",
   },
   game: {
     title: "Chifoumi",

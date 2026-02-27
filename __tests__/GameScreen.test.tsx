@@ -818,3 +818,281 @@ describe("GameScreen – Countdown mode", () => {
     expect(screen.queryByLabelText("Down")).toBeNull();
   });
 });
+
+const renderCountdownDirApp = () => {
+  return renderRouter(
+    { "game": GameScreen },
+    { initialUrl: "/game?mode=countdownDirections" }
+  );
+};
+
+/** Advance to choose phase for a given countdown state */
+const advanceToChoosePhase = (countdownState: number, round = 0) => {
+  const { beatInterval } = getRoundTimings(round);
+  if (countdownState === 3) {
+    // Choose phase = scissors → need rock + paper
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // paper → scissors
+  } else if (countdownState === 2) {
+    // Choose phase = paper → need rock
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
+  }
+  // countdownState === 1: choose phase = rock, already there
+};
+
+describe("GameScreen – CountdownDirections mode", () => {
+  it("renders with countdown indicator and direction buttons", () => {
+    renderCountdownDirApp();
+
+    expect(screen.getByText("Rock!")).toBeTruthy();
+    expect(screen.getByText("Score: 0")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
+    expect(screen.getByLabelText("Up")).toBeTruthy();
+    expect(screen.getByLabelText("Down")).toBeTruthy();
+    expect(screen.getByLabelText("Left")).toBeTruthy();
+    expect(screen.getByLabelText("Right")).toBeTruthy();
+  });
+
+  it("shows RPS choice buttons", () => {
+    renderCountdownDirApp();
+
+    expect(screen.getByLabelText("Rock!")).toBeTruthy();
+    expect(screen.getByLabelText("Paper!")).toBeTruthy();
+    expect(screen.getByLabelText("Scissors!")).toBeTruthy();
+  });
+
+  it("state 3: RPS input on scissors shows result", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    expect(screen.getByText("You Win!")).toBeTruthy();
+    expect(Haptics.impactAsync).toHaveBeenCalledWith(
+      Haptics.ImpactFeedbackStyle.Light
+    );
+  });
+
+  it("draw stays in RPS phase, advances countdown", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!")); // draw vs rock
+    advanceResultToRock();
+
+    expect(screen.getByText("Score: 1")).toBeTruthy();
+    expect(screen.getByText("2")).toBeTruthy(); // countdown advanced
+    expect(screen.getByText("Rock!")).toBeTruthy();
+  });
+
+  it("win enters direction round with countdown advancing", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!")); // win vs rock
+    advanceResultToRock();
+
+    expect(screen.getByText("2")).toBeTruthy(); // state advanced
+    expect(screen.getByText("Score: 1")).toBeTruthy();
+    expect(screen.getByText("Rock!")).toBeTruthy();
+  });
+
+  it("win + correct direction → back to RPS", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI rock, AI dir up
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    // Win RPS in state 3
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Direction round in state 2 (paper is choose phase)
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Up")); // matches AI up
+    expect(screen.getByText("Confirm!")).toBeTruthy();
+
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // paper → result
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock
+
+    expect(screen.getByText("1")).toBeTruthy(); // state 2 → 1
+    expect(screen.getByText("Score: 2")).toBeTruthy();
+  });
+
+  it("win + wrong direction shows miss text and retry count", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.25); // AI rock, AI dir down
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!")); // win
+    advanceResultToRock();
+
+    // Direction round state 2
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Up")); // miss
+
+    expect(screen.getByText("Wrong direction!")).toBeTruthy();
+    expect(screen.getByText("1 try left")).toBeTruthy();
+  });
+
+  it("win + 2 wrong directions → voided, back to RPS", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.25); // AI rock, AI dir down
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!")); // win
+    advanceResultToRock();
+
+    // 1st direction attempt state 2
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Up")); // miss
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // paper → result
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock
+
+    // 2nd direction attempt state 1 (rock is choose phase)
+    expect(screen.getByText("1")).toBeTruthy();
+    const t2 = getRoundTimings(2);
+    await user.press(screen.getByLabelText("Up")); // miss, voided
+    act(() => { jest.advanceTimersByTime(t2.beatInterval); }); // rock → result
+    act(() => { jest.advanceTimersByTime(t2.beatInterval); }); // result → rock
+
+    expect(screen.getByText("3")).toBeTruthy(); // back to state 3
+    expect(screen.getByText("Score: 3")).toBeTruthy();
+  });
+
+  it("too early on rock in state 3", async () => {
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    await user.press(screen.getByLabelText("Rock!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too early!")).toBeTruthy();
+  });
+
+  it("too late when missing choose window", () => {
+    renderCountdownDirApp();
+
+    advanceToTimeout();
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Too late!")).toBeTruthy();
+  });
+
+  it("pressing direction during RPS round ends game with wrong_type", async () => {
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Up")); // direction during RPS
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Wrong button!")).toBeTruthy();
+  });
+
+  it("pressing RPS during direction round ends game with wrong_type", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!")); // win
+    advanceResultToRock();
+
+    // Direction round state 2, paper is choose
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Rock!")); // RPS during direction
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("Wrong button!")).toBeTruthy();
+  });
+
+  it("restarting stays in countdownDirections mode", async () => {
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToTimeout();
+    expect(screen.getByText("Game Over")).toBeTruthy();
+
+    await user.press(screen.getByText("Play Again"));
+
+    expect(screen.getByText("Rock!")).toBeTruthy();
+    expect(screen.getByText("Score: 0")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
+    expect(screen.getByLabelText("Up")).toBeTruthy();
+  });
+
+  it("ignores direction button presses when not playing", async () => {
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToTimeout();
+
+    await user.press(screen.getByLabelText("Up"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(Haptics.impactAsync).not.toHaveBeenCalled();
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+  });
+
+  it("navigates to countdownDirections game from home", async () => {
+    const user = userEvent.setup();
+    const { getPathname } = renderRouter(
+      { "index": HomeScreen, "game": GameScreen, "settings": () => <Text>{"Settings"}</Text> },
+      { initialUrl: "/" }
+    );
+
+    await user.press(screen.getByText("3-2-1 Directions"));
+    expect(getPathname()).toBe("/game");
+    expect(screen.getByText("3")).toBeTruthy();
+    expect(screen.getByLabelText("Up")).toBeTruthy();
+  });
+
+  it("lose + AI direction matches → confirmed, back to RPS", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI rock, AI dir up
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Scissors!")); // lose vs rock
+    advanceResultToRock();
+
+    // Direction round state 2
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Up")); // matched
+
+    expect(screen.getByText("They confirmed!")).toBeTruthy();
+  });
+
+  it("grace period accepts direction input in direction round", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderCountdownDirApp();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!")); // win
+    advanceResultToRock();
+
+    // Direction round state 2 (grace on rock, choose on paper)
+    const { beatInterval, graceBefore } = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(beatInterval - graceBefore); }); // into grace
+
+    await user.press(screen.getByLabelText("Up")); // direction in grace
+    expect(screen.getByText("Confirm!")).toBeTruthy();
+    expect(Haptics.impactAsync).toHaveBeenCalledWith(
+      Haptics.ImpactFeedbackStyle.Light
+    );
+  });
+});

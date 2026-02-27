@@ -33,7 +33,7 @@ export default function GameScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
-  const urlMode: GameMode = modeParam === "directions" ? "directions" : modeParam === "countdown" ? "countdown" : "classic";
+  const urlMode: GameMode = modeParam === "directions" ? "directions" : modeParam === "countdown" ? "countdown" : modeParam === "countdownDirections" ? "countdownDirections" : "classic";
 
   useGameLoop();
 
@@ -47,9 +47,9 @@ export default function GameScreen() {
 
   // Narrow modeData into aliased variables matching the rest of the component
   const gameMode = modeData.gameMode;
-  const isDirectionRound = modeData.gameMode === "directions" && modeData.isDirectionRound;
-  const directionAttemptsLeft = modeData.gameMode === "directions" ? modeData.directionAttemptsLeft : 2;
-  const countdownState = modeData.gameMode === "countdown" ? modeData.countdownState : null;
+  const isDirectionRound = (modeData.gameMode === "directions" || modeData.gameMode === "countdownDirections") && modeData.isDirectionRound;
+  const directionAttemptsLeft = (modeData.gameMode === "directions" || modeData.gameMode === "countdownDirections") ? modeData.directionAttemptsLeft : 2;
+  const countdownState = (modeData.gameMode === "countdown" || modeData.gameMode === "countdownDirections") ? modeData.countdownState : null;
   const choosePhase = getChoosePhase(modeData);
   const gracePhase = getGracePhase(modeData);
   let playerChoice: Choice | null = null;
@@ -58,7 +58,7 @@ export default function GameScreen() {
   let playerDirectionChoice: Direction | null = null;
   let directionAiChoice: Direction | null = null;
   let pendingRpsResult: RoundResult | null = null;
-  if (modeData.gameMode === "directions" && modeData.isDirectionRound) {
+  if ((modeData.gameMode === "directions" || modeData.gameMode === "countdownDirections") && modeData.isDirectionRound) {
     playerDirectionChoice = modeData.playerInput;
     directionAiChoice = modeData.aiInput;
     pendingRpsResult = modeData.pendingRpsResult;
@@ -99,7 +99,7 @@ export default function GameScreen() {
     const elapsed = Date.now() - phaseStartedAt;
     const timings = getRoundTimings(score);
     const inGracePeriod = gracePhase !== null && phase === gracePhase && elapsed >= timings.beatInterval - timings.graceBefore;
-    const isValidTiming = (phase === choosePhase || inGracePeriod) && isDirectionRound;
+    const isValidTiming = (phase === choosePhase || inGracePeriod) && isDirectionRound && !playerDirectionChoice;
     if (isValidTiming) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else {
@@ -146,13 +146,16 @@ export default function GameScreen() {
 
   const showRpsResult = !isDirectionRound && (phase === "result" || (phase === choosePhase && !!playerChoice));
   const showDirectionResult =
-    isDirectionRound && (phase === "result" || (phase === "scissors" && !!playerDirectionChoice));
+    isDirectionRound && (phase === "result" || (phase === choosePhase && !!playerDirectionChoice));
 
-  const rpsButtonsEnabled = gameMode === "countdown"
-    ? (phase === choosePhase || (gracePhase !== null && phase === gracePhase)) && !playerChoice
+  const rpsButtonsEnabled = gameMode === "countdown" || gameMode === "countdownDirections"
+    ? (phase === choosePhase || (gracePhase !== null && phase === gracePhase)) && !playerChoice && !isDirectionRound
     : (phase === "scissors" && !playerChoice && !isDirectionRound);
   const rpsButtonsDisabled = !rpsButtonsEnabled && isPlaying;
-  const directionButtonsDisabled = (phase !== "scissors" || !!playerDirectionChoice) && isPlaying;
+  const directionButtonsEnabled = gameMode === "countdownDirections"
+    ? (phase === choosePhase || (gracePhase !== null && phase === gracePhase)) && !playerDirectionChoice && isDirectionRound
+    : phase === "scissors" && !playerDirectionChoice;
+  const directionButtonsDisabled = !directionButtonsEnabled && isPlaying;
   const isGameOver = !isPlaying && !!mistakeReason;
 
   const attemptsRemaining = directionAttemptsLeft - 1;
@@ -297,7 +300,7 @@ export default function GameScreen() {
         ) : null}
       </View>
 
-      {gameMode === "directions" ? (
+      {gameMode === "directions" || gameMode === "countdownDirections" ? (
         <View style={styles.gameButtonsRow}>
           <View style={styles.directionButtons}>
             <View style={{ position: "absolute", top: 0, left: 50 }}>
