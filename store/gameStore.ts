@@ -201,6 +201,29 @@ const buildRpsInputData = (
   };
 };
 
+const nextRockRound = (modeData: ModeData): Partial<GameState> => ({
+  phase: "rock",
+  phaseStartedAt: Date.now(),
+  modeData,
+});
+
+const resolveDirectionRound = (
+  modeData: DirectionsDirectionPhase | CountdownDirDirectionPhase,
+  resetData: ModeData
+): Partial<GameState> => {
+  if (modeData.playerInput === modeData.aiInput) return nextRockRound(resetData);
+  if (modeData.directionAttemptsLeft > 1)
+    return nextRockRound({ ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 });
+  return nextRockRound(resetData);
+};
+
+const MODE_RESET: Record<GameMode, ModeData> = {
+  classic: CLASSIC_RESET,
+  directions: DIRECTIONS_RPS_RESET,
+  countdown: COUNTDOWN_RESET,
+  countdownDirections: COUNTDOWN_DIR_RPS_RESET,
+};
+
 export const useGameStore = create<GameState>()((set, get) => ({
   phase: "idle",
   score: 0,
@@ -222,7 +245,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         isPlaying: true,
         mistakeReason: null,
         phaseStartedAt: Date.now(),
-        modeData: mode === "classic" ? CLASSIC_RESET : mode === "countdown" ? COUNTDOWN_RESET : mode === "countdownDirections" ? COUNTDOWN_DIR_RPS_RESET : DIRECTIONS_RPS_RESET,
+        modeData: MODE_RESET[mode],
       });
     },
 
@@ -269,76 +292,48 @@ export const useGameStore = create<GameState>()((set, get) => ({
       if (phase !== "result") return;
 
       // Result phase: mode-specific handling
-      if (modeData.gameMode === "classic") return set({ phase: "rock", modeData: CLASSIC_RESET, phaseStartedAt: Date.now() });
+      if (modeData.gameMode === "classic") return set(nextRockRound(CLASSIC_RESET));
 
       if (modeData.gameMode === "countdown")
-        return set({
-          phase: "rock",
-          modeData: { ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] },
-          phaseStartedAt: Date.now(),
-        });
+        return set(nextRockRound({ ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] }));
 
       if (modeData.gameMode === "countdownDirections") {
         const nextState = NEXT_COUNTDOWN_STATE[modeData.countdownState];
         if (!modeData.isDirectionRound) {
           if (modeData.roundResult === "draw")
-            return set({ phase: "rock", modeData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }, phaseStartedAt: Date.now() });
-          return set({
-            phase: "rock",
-            modeData: {
-              gameMode: "countdownDirections",
-              countdownState: nextState,
-              isDirectionRound: true,
-              playerInput: null,
-              aiInput: null,
-              pendingRpsResult: modeData.roundResult!,
-              directionAttemptsLeft: 2,
-            },
-            phaseStartedAt: Date.now(),
-          });
-        }
-        const matched = modeData.playerInput === modeData.aiInput;
-        if (matched)
-          return set({ phase: "rock", modeData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }, phaseStartedAt: Date.now() });
-        if (modeData.directionAttemptsLeft > 1)
-          return set({
-            phase: "rock",
-            modeData: { ...modeData, countdownState: nextState, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },
-            phaseStartedAt: Date.now(),
-          });
-        return set({ phase: "rock", modeData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }, phaseStartedAt: Date.now() });
-      }
-
-      if (!modeData.isDirectionRound) {
-        // DirectionsRpsPhase result
-        if (modeData.roundResult === "draw") return set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
-        // win or lose → enter direction phase
-        return set({
-          phase: "rock",
-          modeData: {
-            gameMode: "directions",
+            return set(nextRockRound({ ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }));
+          return set(nextRockRound({
+            gameMode: "countdownDirections",
+            countdownState: nextState,
             isDirectionRound: true,
             playerInput: null,
             aiInput: null,
             pendingRpsResult: modeData.roundResult!,
             directionAttemptsLeft: 2,
-          },
-          phaseStartedAt: Date.now(),
-        });
+          }));
+        }
+        return set(resolveDirectionRound(
+          { ...modeData, countdownState: nextState },
+          { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }
+        ));
+      }
+
+      if (!modeData.isDirectionRound) {
+        // DirectionsRpsPhase result
+        if (modeData.roundResult === "draw") return set(nextRockRound(DIRECTIONS_RPS_RESET));
+        // win or lose → enter direction phase
+        return set(nextRockRound({
+          gameMode: "directions",
+          isDirectionRound: true,
+          playerInput: null,
+          aiInput: null,
+          pendingRpsResult: modeData.roundResult!,
+          directionAttemptsLeft: 2,
+        }));
       }
 
       // DirectionsDirectionPhase result
-      const matched = modeData.playerInput === modeData.aiInput;
-      if (matched) return set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
-      // more attempts: new direction round
-      if (modeData.directionAttemptsLeft > 1)
-        return set({
-          phase: "rock",
-          modeData: { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },
-          phaseStartedAt: Date.now(),
-        });
-      // no more attempts: round voided
-      set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
+      set(resolveDirectionRound(modeData, DIRECTIONS_RPS_RESET));
     },
 
     endGame: (reason: MistakeReason) => {
