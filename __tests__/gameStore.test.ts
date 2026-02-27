@@ -193,7 +193,7 @@ describe("useGameStore edge cases", () => {
     expect(mdIsDirectionRound()).toBe(true);
     expect(mdPendingRpsResult()).toBe("win");
     expect(mdDirectionAttemptsLeft()).toBe(2);
-    expect(useGameStore.getState().score).toBe(0); // no score yet
+    expect(useGameStore.getState().score).toBe(1); // +1 for RPS input
     expect(useGameStore.getState().phase).toBe("rock");
   });
 
@@ -213,7 +213,7 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // scissors → result
     advancePhase(); // result → rock (matched, win → score++)
 
-    expect(useGameStore.getState().score).toBe(1);
+    expect(useGameStore.getState().score).toBe(2);
     expect(mdIsDirectionRound()).toBe(false);
     expect(useGameStore.getState().phase).toBe("rock");
   });
@@ -237,7 +237,7 @@ describe("useGameStore edge cases", () => {
 
     expect(mdIsDirectionRound()).toBe(true);
     expect(mdDirectionAttemptsLeft()).toBe(1);
-    expect(useGameStore.getState().score).toBe(0);
+    expect(useGameStore.getState().score).toBe(2);
     expect(useGameStore.getState().phase).toBe("rock");
   });
 
@@ -263,7 +263,7 @@ describe("useGameStore edge cases", () => {
     advancePhase(); advancePhase(); // scissors → result → back to normal
 
     expect(mdIsDirectionRound()).toBe(false);
-    expect(useGameStore.getState().score).toBe(0); // voided
+    expect(useGameStore.getState().score).toBe(3); // +1 RPS + 2 direction attempts
     expect(useGameStore.getState().phase).toBe("rock");
     expect(mdDirectionAttemptsLeft()).toBe(2); // reset
   });
@@ -285,7 +285,7 @@ describe("useGameStore edge cases", () => {
     makeInput("up"); // player picks up; AI picks up → matched
     advancePhase(); advancePhase(); // scissors → result → rock
 
-    expect(useGameStore.getState().score).toBe(0); // no score for player
+    expect(useGameStore.getState().score).toBe(2); // +1 RPS + 1 direction
     expect(mdIsDirectionRound()).toBe(false);
     expect(useGameStore.getState().phase).toBe("rock");
   });

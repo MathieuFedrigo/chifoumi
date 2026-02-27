@@ -221,25 +221,24 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
       // Choose phase: resolve or too_late
       if (phase === choosePhase) {
-        if (modeData.playerInput) return set({ phase: "result", phaseStartedAt: Date.now() });
+        if (modeData.playerInput) return set((s) => ({ phase: "result", score: s.score + 1, phaseStartedAt: Date.now() }));
         return endGame("too_late");
       }
       if (phase !== "result") return;
 
       // Result phase: mode-specific handling
-      if (modeData.gameMode === "classic") return set((s) => ({ phase: "rock", score: s.score + 1, modeData: CLASSIC_RESET, phaseStartedAt: Date.now() }));
+      if (modeData.gameMode === "classic") return set({ phase: "rock", modeData: CLASSIC_RESET, phaseStartedAt: Date.now() });
 
-      if (modeData.gameMode === "countdown") 
-        return set((s) => ({
+      if (modeData.gameMode === "countdown")
+        return set({
           phase: "rock",
-          score: s.score + 1,
           modeData: { ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] },
           phaseStartedAt: Date.now(),
-        }));
+        });
 
       if (!modeData.isDirectionRound) {
         // DirectionsRpsPhase result
-        if (modeData.roundResult === "draw") return set((s) => ({ phase: "rock", score: s.score + 1, modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() }));
+        if (modeData.roundResult === "draw") return set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
         // win or lose → enter direction phase
         set({
           phase: "rock",
@@ -259,8 +258,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       // DirectionsDirectionPhase result
       const matched = modeData.playerInput === modeData.aiInput;
       if (matched) {
-        const scoreIncrease = modeData.pendingRpsResult === "win" ? 1 : 0;
-        set((s) => ({ phase: "rock", score: s.score + scoreIncrease, modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() }));
+        set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
         return;
       }
       // more attempts: new direction round

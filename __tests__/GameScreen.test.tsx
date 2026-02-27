@@ -489,7 +489,7 @@ describe("GameScreen – Directions mode", () => {
 
     // Now in direction round — should still show Rock! phase
     expect(screen.getByText("Rock!")).toBeTruthy();
-    expect(screen.getByText("Score: 0")).toBeTruthy(); // no score yet
+    expect(screen.getByText("Score: 1")).toBeTruthy(); // +1 for RPS input
   });
 
   it("too late in first round ends game", () => {
@@ -540,7 +540,7 @@ describe("GameScreen – Directions mode", () => {
     expect(screen.getByText("Confirm!")).toBeTruthy();
     advanceResultToRock();
 
-    expect(screen.getByText("Score: 1")).toBeTruthy();
+    expect(screen.getByText("Score: 2")).toBeTruthy();
     expect(screen.getByText("Rock!")).toBeTruthy();
   });
 
@@ -581,7 +581,7 @@ describe("GameScreen – Directions mode", () => {
     await user.press(screen.getByLabelText("Up"));
     advanceResultToRock();
 
-    expect(screen.getByText("Score: 0")).toBeTruthy();
+    expect(screen.getByText("Score: 3")).toBeTruthy();
     expect(screen.getByText("Rock!")).toBeTruthy();
   });
 
@@ -601,7 +601,7 @@ describe("GameScreen – Directions mode", () => {
     expect(screen.getByText("They confirmed!")).toBeTruthy();
     advanceResultToRock();
 
-    expect(screen.getByText("Score: 0")).toBeTruthy();
+    expect(screen.getByText("Score: 2")).toBeTruthy();
     expect(screen.getByText("Rock!")).toBeTruthy();
   });
 
