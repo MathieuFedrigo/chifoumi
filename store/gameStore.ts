@@ -199,14 +199,10 @@ export const useGameStore = create<GameState>()((set, get) => ({
         ? { modeData: { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase }
         : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData, input as Choice, getRandomChoice()) };
 
-      if (phase === choosePhase) {
-        set(buildUpdate());
-        return;
-      }
+      if (phase === choosePhase) return set(buildUpdate());
       if (phase === gracePhase) {
         if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
-        set({ ...buildUpdate(), phase: choosePhase, phaseStartedAt: Date.now() });
-        return;
+        return set({ ...buildUpdate(), phase: choosePhase, phaseStartedAt: Date.now() });
       }
       return endGame("too_early");
     },
@@ -240,7 +236,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         // DirectionsRpsPhase result
         if (modeData.roundResult === "draw") return set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
         // win or lose → enter direction phase
-        set({
+        return set({
           phase: "rock",
           modeData: {
             gameMode: "directions",
@@ -252,21 +248,18 @@ export const useGameStore = create<GameState>()((set, get) => ({
           },
           phaseStartedAt: Date.now(),
         });
-        return;
       }
 
       // DirectionsDirectionPhase result
       const matched = modeData.playerInput === modeData.aiInput;
-      if (matched) {
-        set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
-        return;
-      }
+      if (matched) return set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
       // more attempts: new direction round
-      if (modeData.directionAttemptsLeft > 1) return set({
-        phase: "rock",
-        modeData: { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },
-        phaseStartedAt: Date.now(),
-      });
+      if (modeData.directionAttemptsLeft > 1) 
+        return set({
+          phase: "rock",
+          modeData: { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 },
+          phaseStartedAt: Date.now(),
+        });
       // no more attempts: round voided
       set({ phase: "rock", modeData: DIRECTIONS_RPS_RESET, phaseStartedAt: Date.now() });
     },
