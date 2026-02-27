@@ -163,6 +163,23 @@ const COUNTDOWN_DIR_RPS_RESET: CountdownDirRpsPhase = {
   directionAttemptsLeft: 2,
 };
 
+const DIRECTIONS_DIR_RESET = {
+  gameMode: "directions" as const,
+  isDirectionRound: true as const,
+  playerInput: null,
+  aiInput: null,
+  directionAttemptsLeft: 2,
+};
+
+const COUNTDOWN_DIR_DIR_RESET = {
+  gameMode: "countdownDirections" as const,
+  countdownState: 3 as CountdownState,
+  isDirectionRound: true as const,
+  playerInput: null,
+  aiInput: null,
+  directionAttemptsLeft: 2,
+};
+
 const isGracePeriodActive = ({ phaseStartedAt, score }: { phaseStartedAt: number; score: number }): boolean => {
   const { beatInterval, graceBefore } = getRoundTimings(score);
   return Date.now() - phaseStartedAt >= beatInterval - graceBefore;
@@ -311,15 +328,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
           if (!modeData.isDirectionRound) {
             if (modeData.roundResult === "draw")
               return set(nextRockRound({ ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCountdownState }));
-            return set(nextRockRound({
-              gameMode: "countdownDirections",
-              countdownState: nextCountdownState,
-              isDirectionRound: true,
-              playerInput: null,
-              aiInput: null,
-              pendingRpsResult: modeData.roundResult!,
-              directionAttemptsLeft: 2,
-            }));
+            return set(nextRockRound({ ...COUNTDOWN_DIR_DIR_RESET, countdownState: nextCountdownState, pendingRpsResult: modeData.roundResult! }));
           }
           return set(resolveDirectionRound({
             modeData: { ...modeData, countdownState: nextCountdownState },
@@ -332,14 +341,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
             // DirectionsRpsPhase result
             if (modeData.roundResult === "draw") return set(nextRockRound(DIRECTIONS_RPS_RESET));
             // win or lose → enter direction phase
-            return set(nextRockRound({
-              gameMode: "directions",
-              isDirectionRound: true,
-              playerInput: null,
-              aiInput: null,
-              pendingRpsResult: modeData.roundResult!,
-              directionAttemptsLeft: 2,
-            }));
+            return set(nextRockRound({ ...DIRECTIONS_DIR_RESET, pendingRpsResult: modeData.roundResult! }));
           }
           // DirectionsDirectionPhase result
           set(resolveDirectionRound({ modeData, resetData: DIRECTIONS_RPS_RESET }));
