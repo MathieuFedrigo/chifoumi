@@ -313,7 +313,7 @@ export default function GameScreen() {
               <DirBtn dir="down" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
             </View>
           </View>
-          <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} buttonSize={68} rowGap={8} />
+          <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} size="small" />
         </View>
       ) : (
         <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} />
@@ -481,14 +481,16 @@ interface RpsChoicesProps {
   onPress: (choice: Choice) => void;
   disabled: boolean;
   colors: Theme["colors"];
-  buttonSize?: number;
-  rowGap?: number;
+  size?: "regular" | "small";
 }
 
-function RpsChoices({ onPress, disabled, colors, buttonSize = 80, rowGap = 20 }: RpsChoicesProps) {
+function RpsChoices({ onPress, disabled, colors, size = "regular" }: RpsChoicesProps) {
+  const buttonSize = size === "small" ? 68 : 80;
+  const rowGap     = size === "small" ? 16  : 20;
+  const columnGap  = size === "small" ? 4  : 12;
   const { t } = useTranslation();
   return (
-    <View style={styles.choiceButtons}>
+    <View style={[styles.choiceButtons, { gap: columnGap }]}>
       <View style={[styles.rpsButtonRow, { gap: rowGap }]}>
         {CHOICES.slice(0, 2).map((choice) => (
           <Pressable
