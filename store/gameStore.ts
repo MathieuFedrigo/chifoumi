@@ -81,7 +81,7 @@ export const getGracePhase = (modeData: ModeData): GamePhase | null =>
     : "paper";
 
 /** Next R-P-S phase, or null if already at/past choosePhase */
-const getNextPhase = (phase: GamePhase, choosePhase: GamePhase): GamePhase | null => {
+const getNextPhase = ({ phase, choosePhase }: { phase: GamePhase; choosePhase: GamePhase }): GamePhase | null => {
   if (phase === "rock" && choosePhase !== "rock") return "paper";
   if (phase === "paper" && choosePhase === "scissors") return "scissors";
   return null;
@@ -106,7 +106,7 @@ interface GameState {
   actions: GameActions;
 }
 
-export const determineResult = (player: Choice, ai: Choice): RoundResult => {
+export const determineResult = ({ player, ai }: { player: Choice; ai: Choice }): RoundResult => {
   if (player === ai) return "draw";
   if (
     (player === "rock" && ai === "scissors") ||
@@ -163,17 +163,21 @@ const COUNTDOWN_DIR_RPS_RESET: CountdownDirRpsPhase = {
   directionAttemptsLeft: 2,
 };
 
-const isGracePeriodActive = (phaseStartedAt: number, score: number): boolean => {
+const isGracePeriodActive = ({ phaseStartedAt, score }: { phaseStartedAt: number; score: number }): boolean => {
   const { beatInterval, graceBefore } = getRoundTimings(score);
   return Date.now() - phaseStartedAt >= beatInterval - graceBefore;
 };
 
-const buildRpsInputData = (
-  modeData: ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase,
-  choice: Choice,
-  ai: Choice
-): ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase => {
-  const roundResult = determineResult(choice, ai);
+const buildRpsInputData = ({
+  modeData,
+  choice,
+  ai,
+}: {
+  modeData: ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase;
+  choice: Choice;
+  ai: Choice;
+}): ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase => {
+  const roundResult = determineResult({ player: choice, ai });
   if (modeData.gameMode === "classic") {
     return { gameMode: "classic", playerInput: choice, aiInput: ai, roundResult };
   }
@@ -207,10 +211,13 @@ const nextRockRound = (modeData: ModeData): Partial<GameState> => ({
   modeData,
 });
 
-const resolveDirectionRound = (
-  modeData: DirectionsDirectionPhase | CountdownDirDirectionPhase,
-  resetData: ModeData
-): Partial<GameState> => {
+const resolveDirectionRound = ({
+  modeData,
+  resetData,
+}: {
+  modeData: DirectionsDirectionPhase | CountdownDirDirectionPhase;
+  resetData: ModeData;
+}): Partial<GameState> => {
   if (modeData.playerInput === modeData.aiInput) return nextRockRound(resetData);
   if (modeData.directionAttemptsLeft > 1)
     return nextRockRound({ ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 });
@@ -266,11 +273,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
       const buildUpdate = (): Partial<GameState> => isDir
         ? { modeData: { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase | CountdownDirDirectionPhase }
-        : { modeData: buildRpsInputData(modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase, input as Choice, getRandomChoice()) };
+        : { modeData: buildRpsInputData({ modeData: modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase, choice: input as Choice, ai: getRandomChoice() }) };
 
       if (phase === choosePhase) return set(buildUpdate());
       if (phase === gracePhase) {
-        if (!isGracePeriodActive(phaseStartedAt, score)) return endGame("too_early");
+        if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early");
         return set({ ...buildUpdate(), phase: choosePhase, phaseStartedAt: Date.now() });
       }
       return endGame("too_early");
@@ -281,7 +288,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const choosePhase = getChoosePhase(modeData);
 
       // Advance through R-P-S phases before choose
-      const nextPhase = getNextPhase(phase, choosePhase);
+      const nextPhase = getNextPhase({ phase, choosePhase });
       if (nextPhase) return set({ phase: nextPhase, phaseStartedAt: Date.now() });
 
       // Choose phase: resolve or too_late
@@ -312,10 +319,10 @@ export const useGameStore = create<GameState>()((set, get) => ({
             directionAttemptsLeft: 2,
           }));
         }
-        return set(resolveDirectionRound(
-          { ...modeData, countdownState: nextState },
-          { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState }
-        ));
+        return set(resolveDirectionRound({
+          modeData: { ...modeData, countdownState: nextState },
+          resetData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextState },
+        }));
       }
 
       if (!modeData.isDirectionRound) {
@@ -333,7 +340,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       }
 
       // DirectionsDirectionPhase result
-      set(resolveDirectionRound(modeData, DIRECTIONS_RPS_RESET));
+      set(resolveDirectionRound({ modeData, resetData: DIRECTIONS_RPS_RESET }));
     },
 
     endGame: (reason: MistakeReason) => {

@@ -4,21 +4,21 @@ import type { Choice, CountdownState, Direction, GameMode, ModeData } from "@/st
 
 describe("determineResult", () => {
   it("returns draw for same choices", () => {
-    expect(determineResult("rock", "rock")).toBe("draw");
-    expect(determineResult("paper", "paper")).toBe("draw");
-    expect(determineResult("scissors", "scissors")).toBe("draw");
+    expect(determineResult({ player: "rock", ai: "rock" })).toBe("draw");
+    expect(determineResult({ player: "paper", ai: "paper" })).toBe("draw");
+    expect(determineResult({ player: "scissors", ai: "scissors" })).toBe("draw");
   });
 
   it("returns win when player beats AI", () => {
-    expect(determineResult("rock", "scissors")).toBe("win");
-    expect(determineResult("paper", "rock")).toBe("win");
-    expect(determineResult("scissors", "paper")).toBe("win");
+    expect(determineResult({ player: "rock", ai: "scissors" })).toBe("win");
+    expect(determineResult({ player: "paper", ai: "rock" })).toBe("win");
+    expect(determineResult({ player: "scissors", ai: "paper" })).toBe("win");
   });
 
   it("returns lose when AI beats player", () => {
-    expect(determineResult("rock", "paper")).toBe("lose");
-    expect(determineResult("paper", "scissors")).toBe("lose");
-    expect(determineResult("scissors", "rock")).toBe("lose");
+    expect(determineResult({ player: "rock", ai: "paper" })).toBe("lose");
+    expect(determineResult({ player: "paper", ai: "scissors" })).toBe("lose");
+    expect(determineResult({ player: "scissors", ai: "rock" })).toBe("lose");
   });
 });
 
