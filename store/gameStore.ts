@@ -80,7 +80,7 @@ export type HistoryEntry = {
   type: "mistake";
   choosePhase: GamePhase;
   mistakeReason: MistakeReason;
-  aiChoice: Choice | null;
+  aiChoice: Choice;
   playerChoice: Choice | null;
   playerDirection?: Direction | null;
   aiDirection?: Direction | null;
@@ -298,20 +298,18 @@ const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason): Hi
       type: "mistake",
       choosePhase,
       mistakeReason: reason,
-      aiChoice: null,
+      aiChoice: getRandomChoice(),
       playerChoice: null,
       playerDirection: modeData.playerInput,
       aiDirection: modeData.aiInput,
     };
   }
 
-  // For too_late, generate an AI choice for display
-  const aiChoice = reason === "too_late" ? getRandomChoice() : (modeData.aiInput ?? null);
   return {
     type: "mistake",
     choosePhase,
     mistakeReason: reason,
-    aiChoice,
+    aiChoice: modeData.aiInput ?? getRandomChoice(),
     playerChoice: modeData.playerInput ?? null,
   };
 };

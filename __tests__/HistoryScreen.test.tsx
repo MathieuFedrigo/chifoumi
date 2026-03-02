@@ -64,7 +64,7 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "too_early",
-        aiChoice: null,
+        aiChoice: "rock",
         playerChoice: null,
       },
     ]);
@@ -93,7 +93,7 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "wrong_type",
-        aiChoice: null,
+        aiChoice: "rock",
         playerChoice: null,
       },
     ]);
@@ -175,7 +175,7 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "wrong_type",
-        aiChoice: null,
+        aiChoice: "rock",
         playerChoice: null,
         playerDirection: "up",
         aiDirection: "down",

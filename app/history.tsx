@@ -98,14 +98,12 @@ function HistoryItem({ entry, index, colors, t }: HistoryItemProps) {
             size={28}
             color={colors.text}
           />
-        ) : entry.aiChoice ? (
+        ) : (
           <FontAwesome5
             name={CHOICE_ICONS[entry.aiChoice]}
             size={28}
             color={colors.text}
           />
-        ) : (
-          <Text style={[styles.unknownIcon, { color: colors.textTertiary }]}>{"?"}</Text>
         )}
       </View>
 
@@ -213,10 +211,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     textAlign: "center",
-  },
-  unknownIcon: {
-    fontSize: 28,
-    fontWeight: "700",
   },
   beatRow: {
     flexDirection: "row",
