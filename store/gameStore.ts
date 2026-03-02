@@ -65,6 +65,27 @@ type CountdownDirDirectionPhase = {
 
 export type ModeData = ClassicModeData | DirectionsRpsPhase | DirectionsDirectionPhase | CountdownModeData | CountdownDirRpsPhase | CountdownDirDirectionPhase;
 
+export type HistoryEntry = {
+  type: "round";
+  choosePhase: GamePhase;
+  aiChoice: Choice;
+  playerChoice: Choice;
+  roundResult: RoundResult;
+  directionRound?: {
+    aiDirection: Direction;
+    playerDirection: Direction;
+    matched: boolean;
+  };
+} | {
+  type: "mistake";
+  choosePhase: GamePhase;
+  mistakeReason: MistakeReason;
+  aiChoice: Choice | null;
+  playerChoice: Choice | null;
+  playerDirection?: Direction | null;
+  aiDirection?: Direction | null;
+};
+
 const COUNTDOWN_CHOOSE_PHASE: Record<CountdownState, GamePhase> = { 3: "scissors", 2: "paper", 1: "rock" };
 const COUNTDOWN_GRACE_PHASE: Record<CountdownState, GamePhase | null> = { 3: "paper", 2: "rock", 1: null };
 
@@ -103,6 +124,7 @@ interface GameState {
   mistakeReason: MistakeReason | null;
   phaseStartedAt: number;
   modeData: ModeData;
+  roundHistory: HistoryEntry[];
   actions: GameActions;
 }
 
@@ -236,6 +258,64 @@ const buildInputModeData = (modeData: ModeData, input: Choice | Direction): Mode
   return buildRpsInputData({ modeData, choice: input as Choice, ai: getRandomChoice() });
 };
 
+/** Build a completed-round HistoryEntry from current modeData (RPS phases only). */
+const buildRoundHistoryEntry = (modeData: ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase): HistoryEntry => {
+  const choosePhase = getChoosePhase(modeData);
+
+  return {
+    type: "round",
+    choosePhase,
+    aiChoice: modeData.aiInput!,
+    playerChoice: modeData.playerInput!,
+    roundResult: modeData.roundResult!,
+  };
+};
+
+/** Build a direction sub-round entry from direction-phase modeData. */
+const buildDirectionHistoryEntry = (modeData: DirectionsDirectionPhase | CountdownDirDirectionPhase): HistoryEntry => {
+  const choosePhase = getChoosePhase(modeData);
+
+  return {
+    type: "round",
+    choosePhase,
+    aiChoice: "rock", // placeholder — direction rounds don't have RPS choices
+    playerChoice: "rock",
+    roundResult: modeData.pendingRpsResult,
+    directionRound: {
+      aiDirection: modeData.aiInput!,
+      playerDirection: modeData.playerInput!,
+      matched: modeData.playerInput === modeData.aiInput,
+    },
+  };
+};
+
+/** Build a mistake HistoryEntry from current modeData + reason. */
+const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason): HistoryEntry => {
+  const choosePhase = getChoosePhase(modeData);
+
+  if (isDirectionPhase(modeData)) {
+    return {
+      type: "mistake",
+      choosePhase,
+      mistakeReason: reason,
+      aiChoice: null,
+      playerChoice: null,
+      playerDirection: modeData.playerInput,
+      aiDirection: modeData.aiInput,
+    };
+  }
+
+  // For too_late, generate an AI choice for display
+  const aiChoice = reason === "too_late" ? getRandomChoice() : (modeData.aiInput ?? null);
+  return {
+    type: "mistake",
+    choosePhase,
+    mistakeReason: reason,
+    aiChoice,
+    playerChoice: modeData.playerInput ?? null,
+  };
+};
+
 export const useGameStore = create<GameState>()((set, get) => ({
   phase: "idle",
   score: 0,
@@ -243,6 +323,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   mistakeReason: null,
   phaseStartedAt: Date.now(),
   modeData: CLASSIC_RESET,
+  roundHistory: [],
 
   actions: {
     startGame: (mode: GameMode = "classic") => {
@@ -258,6 +339,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         mistakeReason: null,
         phaseStartedAt: Date.now(),
         modeData: MODE_RESET[mode],
+        roundHistory: [],
       });
     },
 
@@ -307,22 +389,28 @@ export const useGameStore = create<GameState>()((set, get) => ({
       }
       if (phase !== "result") return;
 
-      // Result phase: compute next round
-      return set({ phase: "rock", phaseStartedAt: Date.now(), modeData: getNextRoundModeData(modeData) });
+      // Result phase: push history entry, then compute next round
+      const entry = isDirectionPhase(modeData)
+        ? buildDirectionHistoryEntry(modeData)
+        : buildRoundHistoryEntry(modeData);
+      return set({ phase: "rock", phaseStartedAt: Date.now(), modeData: getNextRoundModeData(modeData), roundHistory: [...get().roundHistory, entry] });
     },
 
     endGame: (reason: MistakeReason) => {
+      const { modeData, roundHistory } = get();
       Sentry.addBreadcrumb({
         category: "game",
         message: `Game ended: ${reason}`,
         level: "info",
         data: { score: get().score, reason },
       });
+      const mistakeEntry = buildMistakeHistoryEntry(modeData, reason);
       set({
         isPlaying: false,
         phase: "idle",
         mistakeReason: reason,
         phaseStartedAt: Date.now(),
+        roundHistory: [...roundHistory, mistakeEntry],
       });
     },
   },

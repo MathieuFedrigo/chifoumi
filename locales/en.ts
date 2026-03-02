@@ -16,6 +16,7 @@ const en = {
     gameOver: "Game Over",
     finalScore: "Final Score: {{count}}",
     restart: "Play Again",
+    seeHistory: "See History",
     goHome: "Home",
     tooEarly: "Too early!",
     tooLate: "Too late!",
@@ -39,6 +40,13 @@ const en = {
       left: "Left",
       right: "Right",
     },
+  },
+  history: {
+    title: "Game History",
+    you: "YOU",
+    ai: "AI",
+    round: "Round {{count}}",
+    mistake: "Mistake",
   },
   settings: {
     title: "Settings",

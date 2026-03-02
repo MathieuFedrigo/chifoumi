@@ -22,6 +22,7 @@ export default {
     gameOver: "Partie terminée",
     finalScore: "Score final : {{count}}",
     restart: "Rejouer",
+    seeHistory: "Voir l'historique",
     goHome: "Accueil",
     tooEarly: "Trop tôt !",
     tooLate: "Trop tard !",
@@ -45,6 +46,13 @@ export default {
       left: "Gauche",
       right: "Droite",
     },
+  },
+  history: {
+    title: "Historique",
+    you: "VOUS",
+    ai: "IA",
+    round: "Manche {{count}}",
+    mistake: "Erreur",
   },
   settings: {
     title: "Paramètres",

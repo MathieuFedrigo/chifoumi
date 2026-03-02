@@ -97,6 +97,20 @@ describe("GameScreen", () => {
     expect(screen.getByText("Too late!")).toBeTruthy();
     expect(screen.getByText("Final Score: 0")).toBeTruthy();
     expect(screen.getByText("Play Again")).toBeTruthy();
+    expect(screen.getByText("See History")).toBeTruthy();
+  });
+
+  it("navigates to history when pressing See History button", async () => {
+    const user = userEvent.setup();
+    const { getPathname } = renderRouter(
+      { "game": GameScreen, "history": () => <Text>{"History"}</Text> },
+      { initialUrl: "/game" }
+    );
+
+    advanceToTimeout();
+
+    await user.press(screen.getByText("See History"));
+    expect(getPathname()).toBe("/history");
   });
 
   it("hides back arrow during gameplay", () => {

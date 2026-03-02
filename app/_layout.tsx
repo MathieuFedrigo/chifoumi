@@ -110,6 +110,16 @@ const RootLayout = function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="game" />
         <Stack.Screen
+          name="history"
+          options={{
+            presentation: "modal",
+            headerShown: true,
+            title: t("history.title"),
+            headerStyle: { backgroundColor: isDark ? darkTheme.colors.surface : lightTheme.colors.surface },
+            headerTintColor: isDark ? darkTheme.colors.text : lightTheme.colors.text,
+          }}
+        />
+        <Stack.Screen
           name="settings"
           options={{
             presentation: "modal",

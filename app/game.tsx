@@ -296,6 +296,16 @@ export default function GameScreen() {
                 {t("game.restart")}
               </Text>
             </Pressable>
+            <Pressable
+              style={[styles.secondaryButton, { borderColor: theme.colors.border }]}
+              onPress={() => router.push("/history")}
+              accessibilityRole="button"
+              accessibilityLabel={t("game.seeHistory")}
+            >
+              <Text style={[styles.secondaryButtonText, { color: theme.colors.textSecondary }]}>
+                {t("game.seeHistory")}
+              </Text>
+            </Pressable>
           </View>
         ) : null}
       </View>
@@ -417,6 +427,16 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 24,
     fontWeight: "700",
+  },
+  secondaryButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   gameButtonsRow: {
     flexDirection: "row",
