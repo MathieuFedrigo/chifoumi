@@ -619,12 +619,11 @@ describe("GameScreen – Directions mode", () => {
     expect(screen.getByText("Rock!")).toBeTruthy();
   });
 
-  it("direction buttons not visible after direction buttons disabled when playing at rock phase", () => {
+  it("direction buttons always enabled when playing", () => {
     renderDirectionsApp();
 
-    // Direction buttons should be rendered but visually disabled (opacity)
+    // Direction buttons are always enabled; wrong-timing presses cause a loss
     expect(screen.getByLabelText("Up")).toBeTruthy();
-    // Still accessible but disabled during rock phase
   });
 
   it("restarting directions game stays in directions mode", async () => {
@@ -1142,7 +1141,7 @@ describe("GameScreen – Interactive result phase", () => {
     const { beatInterval } = getRoundTimings(0);
     act(() => { jest.advanceTimersByTime(beatInterval); }); // scissors → result
 
-    // Buttons should not be visually disabled (opacity 1, not 0.4)
+    // Buttons are always enabled (opacity 1) regardless of phase
     const rockButton = screen.getByLabelText("Rock!");
     expect(rockButton).toHaveStyle({ opacity: 1 });
   });

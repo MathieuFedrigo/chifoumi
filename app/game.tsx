@@ -148,14 +148,6 @@ export default function GameScreen() {
   const showDirectionResult =
     isDirectionRound && (phase === "result" || (phase === choosePhase && !!playerDirectionChoice));
 
-  const rpsButtonsEnabled = gameMode === "countdown" || gameMode === "countdownDirections"
-    ? (phase === choosePhase || (gracePhase !== null && phase === gracePhase)) && !playerChoice && !isDirectionRound
-    : (phase === "scissors" && !playerChoice && !isDirectionRound);
-  const rpsButtonsDisabled = !rpsButtonsEnabled && isPlaying && phase !== "result";
-  const directionButtonsEnabled = gameMode === "countdownDirections"
-    ? (phase === choosePhase || (gracePhase !== null && phase === gracePhase)) && !playerDirectionChoice && isDirectionRound
-    : phase === "scissors" && !playerDirectionChoice;
-  const directionButtonsDisabled = !directionButtonsEnabled && isPlaying && phase !== "result";
   const isGameOver = !isPlaying && !!mistakeReason;
 
   const attemptsRemaining = directionAttemptsLeft - 1;
@@ -314,22 +306,22 @@ export default function GameScreen() {
         <View style={styles.gameButtonsRow}>
           <View style={styles.directionButtons}>
             <View style={{ position: "absolute", top: 0, left: 50 }}>
-              <DirBtn dir="up" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
+              <DirBtn dir="up" onPress={handleDirectionChoice} disabled={false} colors={theme.colors} size={56} />
             </View>
             <View style={{ position: "absolute", top: 50, left: 0 }}>
-              <DirBtn dir="left" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
+              <DirBtn dir="left" onPress={handleDirectionChoice} disabled={false} colors={theme.colors} size={56} />
             </View>
             <View style={{ position: "absolute", top: 50, left: 100 }}>
-              <DirBtn dir="right" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
+              <DirBtn dir="right" onPress={handleDirectionChoice} disabled={false} colors={theme.colors} size={56} />
             </View>
             <View style={{ position: "absolute", top: 100, left: 50 }}>
-              <DirBtn dir="down" onPress={handleDirectionChoice} disabled={directionButtonsDisabled} colors={theme.colors} size={56} />
+              <DirBtn dir="down" onPress={handleDirectionChoice} disabled={false} colors={theme.colors} size={56} />
             </View>
           </View>
-          <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} size="small" />
+          <RpsChoices onPress={handleChoice} disabled={false} colors={theme.colors} size="small" />
         </View>
       ) : (
-        <RpsChoices onPress={handleChoice} disabled={rpsButtonsDisabled} colors={theme.colors} />
+        <RpsChoices onPress={handleChoice} disabled={false} colors={theme.colors} />
       )}
     </View>
   );

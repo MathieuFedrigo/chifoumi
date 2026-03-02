@@ -83,6 +83,20 @@ describe("useGameStore edge cases", () => {
     expect(useGameStore.getState().mistakeReason).toBe("too_early");
   });
 
+  it("pressing twice during scissors ends game with too_early", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame();
+    advancePhase(); // rock → paper
+    advancePhase(); // paper → scissors
+    makeInput("scissors"); // valid first input
+    expect(md().playerInput).toBe("scissors");
+
+    makeInput("rock"); // second press → too_early
+    expect(useGameStore.getState().phase).toBe("idle");
+    expect(useGameStore.getState().mistakeReason).toBe("too_early");
+  });
+
   it("advancePhase from scissors with playerChoice transitions to result then next round", () => {
     jest.spyOn(Math, "random").mockReturnValue(0);
     const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
@@ -455,18 +469,17 @@ describe("useGameStore edge cases", () => {
     expect(useGameStore.getState().isPlaying).toBe(true);
   });
 
-  it("makeInput is a no-op when player already chose in scissors phase", () => {
+  it("makeInput second press during scissors phase ends game with too_early", () => {
     jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
     const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
     startGame();
     advancePhase(); // rock → paper
     advancePhase(); // paper → scissors
-    makeInput("paper"); // first press
-    const firstInput = md().playerInput;
+    makeInput("paper"); // first press: accepted
 
-    makeInput("rock"); // second press: playerInput already set → no-op
-    expect(md().playerInput).toBe(firstInput); // unchanged
-    expect(useGameStore.getState().isPlaying).toBe(true);
+    makeInput("rock"); // second press: playerInput already set → too_early
+    expect(useGameStore.getState().phase).toBe("idle");
+    expect(useGameStore.getState().mistakeReason).toBe("too_early");
   });
 
   it("makeInput with direction is a no-op when phase is not scissors (directions mode, idle phase)", () => {

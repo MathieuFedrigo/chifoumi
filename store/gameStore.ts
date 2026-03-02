@@ -348,7 +348,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
       if (isDir && modeData.gameMode !== "directions" && modeData.gameMode !== "countdownDirections") return;
       if (phase === "idle") return;
-      if (modeData.playerInput !== null && phase !== "result") return;
+      if (modeData.playerInput !== null && phase !== "result") return endGame("too_early", input);
 
       const choosePhase = getChoosePhase(modeData);
       const gracePhase = getGracePhase(modeData);
