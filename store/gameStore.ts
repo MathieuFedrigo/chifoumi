@@ -114,7 +114,7 @@ interface GameActions {
   startGame: (mode?: GameMode) => void;
   makeInput: (input: Choice | Direction) => void;
   advancePhase: () => void;
-  endGame: (reason: MistakeReason) => void;
+  endGame: (reason: MistakeReason, input?: Choice | Direction) => void;
 }
 
 interface GameState {
@@ -289,8 +289,8 @@ const buildDirectionHistoryEntry = (modeData: DirectionsDirectionPhase | Countdo
   };
 };
 
-/** Build a mistake HistoryEntry from current modeData + reason. */
-const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason): HistoryEntry => {
+/** Build a mistake HistoryEntry from current modeData + reason + optional player input. */
+const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason, input?: Choice | Direction): HistoryEntry => {
   const choosePhase = getChoosePhase(modeData);
 
   if (isDirectionPhase(modeData)) {
@@ -299,8 +299,8 @@ const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason): Hi
       choosePhase,
       mistakeReason: reason,
       aiChoice: getRandomChoice(),
-      playerChoice: null,
-      playerDirection: modeData.playerInput,
+      playerChoice: input && !isDirectionInput(input) ? input : null,
+      playerDirection: input && isDirectionInput(input) ? input : modeData.playerInput,
       aiDirection: modeData.aiInput,
     };
   }
@@ -310,7 +310,8 @@ const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason): Hi
     choosePhase,
     mistakeReason: reason,
     aiChoice: modeData.aiInput ?? getRandomChoice(),
-    playerChoice: modeData.playerInput ?? null,
+    playerChoice: input && !isDirectionInput(input) ? input : (modeData.playerInput ?? null),
+    playerDirection: input && isDirectionInput(input) ? input : undefined,
   };
 };
 
@@ -352,24 +353,24 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const choosePhase = getChoosePhase(modeData);
       const gracePhase = getGracePhase(modeData);
 
-      if (isDir !== isDirectionPhase(modeData)) return endGame("wrong_type");
+      if (isDir !== isDirectionPhase(modeData)) return endGame("wrong_type", input);
 
       if (phase === choosePhase) return set({ modeData: buildInputModeData(modeData, input) });
       if (phase === gracePhase) {
-        if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early");
+        if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early", input);
         return set({ modeData: buildInputModeData(modeData, input), phase: choosePhase, phaseStartedAt: Date.now() });
       }
       if (phase === "result") {
         // Check if the NEXT round's choose phase is "rock" (grace falls in this result)
         const nextModeData = getNextRoundModeData(modeData);
         const nextChoosePhase = getChoosePhase(nextModeData);
-        if (nextChoosePhase !== "rock") return endGame("too_early");
-        if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early");
-        if (isDir !== isDirectionPhase(nextModeData)) return endGame("wrong_type");
+        if (nextChoosePhase !== "rock") return endGame("too_early", input);
+        if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early", input);
+        if (isDir !== isDirectionPhase(nextModeData)) return endGame("wrong_type", input);
         return set({ modeData: buildInputModeData(nextModeData, input), phase: nextChoosePhase, phaseStartedAt: Date.now() });
       }
 
-      return endGame("too_early");
+      return endGame("too_early", input);
     },
 
     advancePhase: () => {
@@ -394,7 +395,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       return set({ phase: "rock", phaseStartedAt: Date.now(), modeData: getNextRoundModeData(modeData), roundHistory: [...get().roundHistory, entry] });
     },
 
-    endGame: (reason: MistakeReason) => {
+    endGame: (reason: MistakeReason, input?: Choice | Direction) => {
       const { modeData, roundHistory } = get();
       Sentry.addBreadcrumb({
         category: "game",
@@ -402,7 +403,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         level: "info",
         data: { score: get().score, reason },
       });
-      const mistakeEntry = buildMistakeHistoryEntry(modeData, reason);
+      const mistakeEntry = buildMistakeHistoryEntry(modeData, reason, input);
       set({
         isPlaying: false,
         phase: "idle",

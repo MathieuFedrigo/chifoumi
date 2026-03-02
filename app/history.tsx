@@ -83,8 +83,14 @@ function HistoryItem({ entry, index, colors, t }: HistoryItemProps) {
 
   return (
     <View style={styles.item}>
-      <Text style={[styles.roundLabel, { color: colors.textSecondary }]}>
-        {isMistake ? t("history.mistake") : t("history.round", { count: index + 1 })}
+      <Text style={[styles.roundLabel, { color: isMistake ? colors.warning : colors.textSecondary }]}>
+        {isMistake
+          ? entry.mistakeReason === "too_early"
+            ? t("game.tooEarly")
+            : entry.mistakeReason === "too_late"
+              ? t("game.tooLate")
+              : t("game.wrongType")
+          : t("history.round", { count: index + 1 })}
       </Text>
 
       {/* AI display */}
@@ -114,13 +120,23 @@ function HistoryItem({ entry, index, colors, t }: HistoryItemProps) {
       {/* Player display */}
       <View style={styles.iconSection}>
         {isMistake ? (
-          <Text style={[styles.mistakeText, { color: colors.warning }]}>
-            {entry.mistakeReason === "too_early"
-              ? t("game.tooEarly")
-              : entry.mistakeReason === "too_late"
-                ? t("game.tooLate")
-                : t("game.wrongType")}
-          </Text>
+          entry.playerDirection ? (
+            <FontAwesome5
+              name={DIRECTION_ICONS[entry.playerDirection]}
+              size={28}
+              color={colors.warning}
+            />
+          ) : entry.playerChoice ? (
+            <FontAwesome5
+              name={CHOICE_ICONS[entry.playerChoice]}
+              size={28}
+              color={colors.warning}
+            />
+          ) : (
+            <Text style={[styles.mistakeEmpty, { color: colors.textTertiary }]}>
+              {"—"}
+            </Text>
+          )
         ) : entry.type === "round" && entry.directionRound ? (
           <FontAwesome5
             name={DIRECTION_ICONS[entry.directionRound.playerDirection]}
@@ -207,10 +223,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  mistakeText: {
-    fontSize: 13,
-    fontWeight: "700",
-    textAlign: "center",
+  mistakeEmpty: {
+    fontSize: 28,
+    fontWeight: "300",
+    lineHeight: 34,
   },
   beatRow: {
     flexDirection: "row",

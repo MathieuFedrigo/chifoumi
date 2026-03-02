@@ -58,22 +58,22 @@ describe("HistoryScreen", () => {
     expect(screen.getByText("Round 2")).toBeTruthy();
   });
 
-  it("renders a mistake entry with too_early", () => {
+  it("renders a mistake entry with too_early and player choice", () => {
     setHistory([
       {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "too_early",
         aiChoice: "rock",
-        playerChoice: null,
+        playerChoice: "scissors",
       },
     ]);
     renderHistory();
-    expect(screen.getByText("Mistake")).toBeTruthy();
     expect(screen.getByText("Too early!")).toBeTruthy();
+    expect(screen.getByText("YOU")).toBeTruthy();
   });
 
-  it("renders a mistake entry with too_late", () => {
+  it("renders a mistake entry with too_late and no player choice", () => {
     setHistory([
       {
         type: "mistake",
@@ -85,20 +85,22 @@ describe("HistoryScreen", () => {
     ]);
     renderHistory();
     expect(screen.getByText("Too late!")).toBeTruthy();
+    expect(screen.getByText("—")).toBeTruthy();
   });
 
-  it("renders a mistake entry with wrong_type", () => {
+  it("renders a mistake entry with wrong_type and player choice", () => {
     setHistory([
       {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "wrong_type",
         aiChoice: "rock",
-        playerChoice: null,
+        playerChoice: "paper",
       },
     ]);
     renderHistory();
     expect(screen.getByText("Wrong button!")).toBeTruthy();
+    expect(screen.getByText("YOU")).toBeTruthy();
   });
 
   it("renders direction round entry", () => {
@@ -169,7 +171,7 @@ describe("HistoryScreen", () => {
     expect(screen.getByText("Round 3")).toBeTruthy();
   });
 
-  it("renders mistake with direction phase data", () => {
+  it("renders mistake with direction input", () => {
     setHistory([
       {
         type: "mistake",
@@ -183,6 +185,7 @@ describe("HistoryScreen", () => {
     ]);
     renderHistory();
     expect(screen.getByText("Wrong button!")).toBeTruthy();
+    expect(screen.getByText("YOU")).toBeTruthy();
   });
 
   it("renders round followed by mistake", () => {
@@ -204,8 +207,8 @@ describe("HistoryScreen", () => {
     ]);
     renderHistory();
     expect(screen.getByText("Round 1")).toBeTruthy();
-    expect(screen.getByText("Mistake")).toBeTruthy();
     expect(screen.getByText("Too late!")).toBeTruthy();
+    expect(screen.getByText("—")).toBeTruthy();
   });
 
   it("renders lose round result", () => {
@@ -247,6 +250,7 @@ describe("HistoryScreen", () => {
       },
     ]);
     renderHistory();
-    expect(screen.getByText("Mistake")).toBeTruthy();
+    expect(screen.getByText("Too late!")).toBeTruthy();
+    expect(screen.getByText("AI")).toBeTruthy();
   });
 });
