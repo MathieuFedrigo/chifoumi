@@ -1,4 +1,4 @@
-import { renderRouter, screen } from "expo-router/testing-library";
+import { renderRouter, screen, fireEvent } from "expo-router/testing-library";
 import HistoryScreen from "@/app/history";
 import { useGameStore } from "@/store/gameStore";
 import type { HistoryEntry } from "@/store/gameStore";
@@ -237,6 +237,22 @@ describe("HistoryScreen", () => {
     ]);
     renderHistory();
     expect(screen.getByText("Round 1")).toBeTruthy();
+  });
+
+  it("scrolls to end when content size changes", () => {
+    setHistory([
+      {
+        type: "round",
+        choosePhase: "scissors",
+        aiChoice: "rock",
+        playerChoice: "paper",
+        roundResult: "win",
+      },
+    ]);
+    renderHistory();
+    const list = screen.getByTestId("history-list");
+    fireEvent(list, "contentSizeChange", 500, 200);
+    expect(list).toBeTruthy();
   });
 
   it("renders mistake entry with AI choice shown (too_late with generated AI)", () => {

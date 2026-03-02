@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -37,6 +38,11 @@ export default function HistoryScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const roundHistory = useGameStore((s) => s.roundHistory);
+  const listRef = useRef<FlatList<HistoryEntry>>(null);
+
+  const scrollToEnd = () => {
+    listRef.current?.scrollToEnd({ animated: false });
+  };
 
   const renderItem = ({ item, index }: { item: HistoryEntry; index: number }) => (
     <View style={styles.itemWrapper}>
@@ -57,6 +63,8 @@ export default function HistoryScreen() {
         </View>
       ) : (
         <FlatList
+          testID="history-list"
+          ref={listRef}
           data={roundHistory}
           renderItem={renderItem}
           keyExtractor={(_, i) => String(i)}
@@ -64,6 +72,7 @@ export default function HistoryScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           initialNumToRender={50}
+          onContentSizeChange={scrollToEnd}
         />
       )}
     </View>
