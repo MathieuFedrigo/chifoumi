@@ -207,12 +207,6 @@ const buildRpsInputData = ({
   };
 };
 
-const nextRockRound = (modeData: ModeData): Partial<GameState> => ({
-  phase: "rock",
-  phaseStartedAt: Date.now(),
-  modeData,
-});
-
 /** Compute the next round's modeData (with countdown cycling). */
 const getNextRoundModeData = (modeData: ModeData): ModeData => {
   switch (modeData.gameMode) {
@@ -334,7 +328,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
       if (phase !== "result") return;
 
       // Result phase: compute next round
-      return set(nextRockRound(getNextRoundModeData(modeData)));
+      return set({
+        phase: "rock",
+        phaseStartedAt: Date.now(),
+        modeData: getNextRoundModeData(modeData),
+      });
     },
 
     endGame: (reason: MistakeReason) => {
