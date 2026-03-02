@@ -213,17 +213,36 @@ const nextRockRound = (modeData: ModeData): Partial<GameState> => ({
   modeData,
 });
 
-const resolveDirectionRound = ({
-  modeData,
-  resetData,
-}: {
-  modeData: DirectionsDirectionPhase | CountdownDirDirectionPhase;
-  resetData: ModeData;
-}): Partial<GameState> => {
-  if (modeData.playerInput === modeData.aiInput) return nextRockRound(resetData);
-  if (modeData.directionAttemptsLeft > 1)
-    return nextRockRound({ ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 });
-  return nextRockRound(resetData);
+/** Compute the next round's modeData (with countdown cycling). */
+const getNextRoundModeData = (modeData: ModeData): ModeData => {
+  switch (modeData.gameMode) {
+    case "classic":
+      return CLASSIC_RESET;
+    case "countdown":
+      return { ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] };
+    case "directions":
+      if (!modeData.isDirectionRound) {
+        if (modeData.roundResult === "draw") return DIRECTIONS_RPS_RESET;
+        return { ...DIRECTIONS_DIR_RESET, pendingRpsResult: modeData.roundResult! };
+      }
+      if (modeData.playerInput === modeData.aiInput) return DIRECTIONS_RPS_RESET;
+      if (modeData.directionAttemptsLeft > 1)
+        return { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 };
+      return DIRECTIONS_RPS_RESET;
+    case "countdownDirections": {
+      const nextCd = NEXT_COUNTDOWN_STATE[modeData.countdownState];
+      if (!modeData.isDirectionRound) {
+        if (modeData.roundResult === "draw")
+          return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
+        return { ...COUNTDOWN_DIR_DIR_RESET, countdownState: nextCd, pendingRpsResult: modeData.roundResult! };
+      }
+      if (modeData.playerInput === modeData.aiInput)
+        return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
+      if (modeData.directionAttemptsLeft > 1)
+        return { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1, countdownState: nextCd };
+      return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
+    }
+  }
 };
 
 const MODE_RESET: Record<GameMode, ModeData> = {
@@ -300,38 +319,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
       }
       if (phase !== "result") return;
 
-      // Result phase: mode-specific handling
-      switch (modeData.gameMode) {
-        case "classic":
-          return set(nextRockRound(CLASSIC_RESET));
-
-        case "countdown":
-          return set(nextRockRound({ ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] }));
-
-        case "directions":
-          if (!modeData.isDirectionRound) {
-            // DirectionsRpsPhase result
-            if (modeData.roundResult === "draw") return set(nextRockRound(DIRECTIONS_RPS_RESET));
-            // win or lose → enter direction phase
-            return set(nextRockRound({ ...DIRECTIONS_DIR_RESET, pendingRpsResult: modeData.roundResult! }));
-          }
-          // DirectionsDirectionPhase result
-          return set(resolveDirectionRound({ modeData, resetData: DIRECTIONS_RPS_RESET }));
-
-        case "countdownDirections": {
-          const nextCountdownState = NEXT_COUNTDOWN_STATE[modeData.countdownState];
-          if (!modeData.isDirectionRound) {
-            if (modeData.roundResult === "draw")
-              return set(nextRockRound({ ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCountdownState }));
-            return set(nextRockRound({ ...COUNTDOWN_DIR_DIR_RESET, countdownState: nextCountdownState, pendingRpsResult: modeData.roundResult! }));
-          }
-          return set(resolveDirectionRound({
-            modeData: { ...modeData, countdownState: nextCountdownState },
-            resetData: { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCountdownState },
-          }));
-        }
-
-      }
+      // Result phase: compute next round
+      return set(nextRockRound(getNextRoundModeData(modeData)));
     },
 
     endGame: (reason: MistakeReason) => {
