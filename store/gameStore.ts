@@ -207,38 +207,6 @@ const buildRpsInputData = ({
   };
 };
 
-/** Compute the next round's modeData (with countdown cycling). */
-const getNextRoundModeData = (modeData: ModeData): ModeData => {
-  switch (modeData.gameMode) {
-    case "classic":
-      return CLASSIC_RESET;
-    case "countdown":
-      return { ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] };
-    case "directions":
-      if (!modeData.isDirectionRound) {
-        if (modeData.roundResult === "draw") return DIRECTIONS_RPS_RESET;
-        return { ...DIRECTIONS_DIR_RESET, pendingRpsResult: modeData.roundResult! };
-      }
-      if (modeData.playerInput === modeData.aiInput) return DIRECTIONS_RPS_RESET;
-      if (modeData.directionAttemptsLeft > 1)
-        return { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 };
-      return DIRECTIONS_RPS_RESET;
-    case "countdownDirections": {
-      const nextCd = NEXT_COUNTDOWN_STATE[modeData.countdownState];
-      if (!modeData.isDirectionRound) {
-        if (modeData.roundResult === "draw")
-          return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
-        return { ...COUNTDOWN_DIR_DIR_RESET, countdownState: nextCd, pendingRpsResult: modeData.roundResult! };
-      }
-      if (modeData.playerInput === modeData.aiInput)
-        return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
-      if (modeData.directionAttemptsLeft > 1)
-        return { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1, countdownState: nextCd };
-      return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
-    }
-  }
-};
-
 const MODE_RESET: Record<GameMode, ModeData> = {
   classic: CLASSIC_RESET,
   directions: DIRECTIONS_RPS_RESET,
@@ -328,11 +296,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       if (phase !== "result") return;
 
       // Result phase: compute next round
-      return set({
-        phase: "rock",
-        phaseStartedAt: Date.now(),
-        modeData: getNextRoundModeData(modeData),
-      });
+      return set({ phase: "rock", phaseStartedAt: Date.now(), modeData: getNextRoundModeData(modeData) });
     },
 
     endGame: (reason: MistakeReason) => {
@@ -351,5 +315,37 @@ export const useGameStore = create<GameState>()((set, get) => ({
     },
   },
 }));
+
+/** Compute the next round's modeData (with countdown cycling). */
+const getNextRoundModeData = (modeData: ModeData): ModeData => {
+  switch (modeData.gameMode) {
+    case "classic":
+      return CLASSIC_RESET;
+    case "countdown":
+      return { ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] };
+    case "directions":
+      if (!modeData.isDirectionRound) {
+        if (modeData.roundResult === "draw") return DIRECTIONS_RPS_RESET;
+        return { ...DIRECTIONS_DIR_RESET, pendingRpsResult: modeData.roundResult! };
+      }
+      if (modeData.playerInput === modeData.aiInput) return DIRECTIONS_RPS_RESET;
+      if (modeData.directionAttemptsLeft > 1)
+        return { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 };
+      return DIRECTIONS_RPS_RESET;
+    case "countdownDirections": {
+      const nextCd = NEXT_COUNTDOWN_STATE[modeData.countdownState];
+      if (!modeData.isDirectionRound) {
+        if (modeData.roundResult === "draw")
+          return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
+        return { ...COUNTDOWN_DIR_DIR_RESET, countdownState: nextCd, pendingRpsResult: modeData.roundResult! };
+      }
+      if (modeData.playerInput === modeData.aiInput)
+        return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
+      if (modeData.directionAttemptsLeft > 1)
+        return { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1, countdownState: nextCd };
+      return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
+    }
+  }
+};
 
 export const useGameStoreActions = () => useGameStore((s) => s.actions);
