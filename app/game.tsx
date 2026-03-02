@@ -474,7 +474,7 @@ function DirBtn({ dir, onPress, colors, size = 80 }: DirBtnProps) {
         styles.choiceButton,
         { backgroundColor: colors.surface, borderColor: colors.border, width: size, height: size, borderRadius: size * 0.12, transform: [{ rotate: "45deg" }] },
       ]}
-      onPress={() => onPress(dir)}
+      onPressIn={() => onPress(dir)}
       accessibilityRole="button"
       accessibilityLabel={t(
         `game.direction.${dir}` as
@@ -512,7 +512,7 @@ function RpsChoices({ onPress, colors, size = "regular" }: RpsChoicesProps) {
               styles.choiceButton,
               { backgroundColor: colors.surface, borderColor: colors.border, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
             ]}
-            onPress={() => onPress(choice)}
+            onPressIn={() => onPress(choice)}
             accessibilityRole="button"
             accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
           >
@@ -528,7 +528,7 @@ function RpsChoices({ onPress, colors, size = "regular" }: RpsChoicesProps) {
               styles.choiceButton,
               { backgroundColor: colors.surface, borderColor: colors.border, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
             ]}
-            onPress={() => onPress(choice)}
+            onPressIn={() => onPress(choice)}
             accessibilityRole="button"
             accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
           >
