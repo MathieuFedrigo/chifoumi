@@ -306,22 +306,22 @@ export default function GameScreen() {
         <View style={styles.gameButtonsRow}>
           <View style={styles.directionButtons}>
             <View style={{ position: "absolute", top: 0, left: 50 }}>
-              <DirBtn dir="up" onPress={handleDirectionChoice} disabled={false} colors={theme.colors} size={56} />
+              <DirBtn dir="up" onPress={handleDirectionChoice} colors={theme.colors} size={56} />
             </View>
             <View style={{ position: "absolute", top: 50, left: 0 }}>
-              <DirBtn dir="left" onPress={handleDirectionChoice} disabled={false} colors={theme.colors} size={56} />
+              <DirBtn dir="left" onPress={handleDirectionChoice} colors={theme.colors} size={56} />
             </View>
             <View style={{ position: "absolute", top: 50, left: 100 }}>
-              <DirBtn dir="right" onPress={handleDirectionChoice} disabled={false} colors={theme.colors} size={56} />
+              <DirBtn dir="right" onPress={handleDirectionChoice} colors={theme.colors} size={56} />
             </View>
             <View style={{ position: "absolute", top: 100, left: 50 }}>
-              <DirBtn dir="down" onPress={handleDirectionChoice} disabled={false} colors={theme.colors} size={56} />
+              <DirBtn dir="down" onPress={handleDirectionChoice} colors={theme.colors} size={56} />
             </View>
           </View>
-          <RpsChoices onPress={handleChoice} disabled={false} colors={theme.colors} size="small" />
+          <RpsChoices onPress={handleChoice} colors={theme.colors} size="small" />
         </View>
       ) : (
-        <RpsChoices onPress={handleChoice} disabled={false} colors={theme.colors} />
+        <RpsChoices onPress={handleChoice} colors={theme.colors} />
       )}
     </View>
   );
@@ -462,18 +462,17 @@ const styles = StyleSheet.create({
 interface DirBtnProps {
   dir: Direction;
   onPress: (dir: Direction) => void;
-  disabled: boolean;
   colors: Theme["colors"];
   size?: number;
 }
 
-function DirBtn({ dir, onPress, disabled, colors, size = 80 }: DirBtnProps) {
+function DirBtn({ dir, onPress, colors, size = 80 }: DirBtnProps) {
   const { t } = useTranslation();
   return (
     <Pressable
       style={[
         styles.choiceButton,
-        { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1, width: size, height: size, borderRadius: size * 0.12, transform: [{ rotate: "45deg" }] },
+        { backgroundColor: colors.surface, borderColor: colors.border, width: size, height: size, borderRadius: size * 0.12, transform: [{ rotate: "45deg" }] },
       ]}
       onPress={() => onPress(dir)}
       accessibilityRole="button"
@@ -494,12 +493,11 @@ function DirBtn({ dir, onPress, disabled, colors, size = 80 }: DirBtnProps) {
 
 interface RpsChoicesProps {
   onPress: (choice: Choice) => void;
-  disabled: boolean;
   colors: Theme["colors"];
   size?: "regular" | "small";
 }
 
-function RpsChoices({ onPress, disabled, colors, size = "regular" }: RpsChoicesProps) {
+function RpsChoices({ onPress, colors, size = "regular" }: RpsChoicesProps) {
   const buttonSize = size === "small" ? 68 : 80;
   const rowGap     = size === "small" ? 16  : 20;
   const columnGap  = size === "small" ? 4  : 12;
@@ -512,7 +510,7 @@ function RpsChoices({ onPress, disabled, colors, size = "regular" }: RpsChoicesP
             key={choice}
             style={[
               styles.choiceButton,
-              { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
+              { backgroundColor: colors.surface, borderColor: colors.border, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
             ]}
             onPress={() => onPress(choice)}
             accessibilityRole="button"
@@ -528,7 +526,7 @@ function RpsChoices({ onPress, disabled, colors, size = "regular" }: RpsChoicesP
             key={choice}
             style={[
               styles.choiceButton,
-              { backgroundColor: colors.surface, borderColor: colors.border, opacity: disabled ? 0.4 : 1, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
+              { backgroundColor: colors.surface, borderColor: colors.border, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
             ]}
             onPress={() => onPress(choice)}
             accessibilityRole="button"
