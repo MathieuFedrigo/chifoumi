@@ -170,6 +170,14 @@ const isGracePeriodActive = ({ phaseStartedAt, score }: { phaseStartedAt: number
   return Date.now() - phaseStartedAt >= beatInterval - graceBefore;
 };
 
+// Narrows to direction-round phases (isDirectionRound: true)
+const isDirectionPhase = (m: ModeData): m is DirectionsDirectionPhase | CountdownDirDirectionPhase =>
+  "isDirectionRound" in m && m.isDirectionRound === true;
+
+// Narrows to Direction (vs Choice); replaces the inline (DIRECTIONS as readonly string[]) cast in makeInput
+const isDirectionInput = (input: Choice | Direction): input is Direction =>
+  input === "up" || input === "down" || input === "left" || input === "right";
+
 const buildRpsInputData = ({
   modeData,
   choice,
@@ -214,6 +222,20 @@ const MODE_RESET: Record<GameMode, ModeData> = {
   countdownDirections: COUNTDOWN_DIR_RPS_RESET,
 };
 
+/**
+ * Build updated modeData after a valid input.
+ * Precondition: isDirectionPhase(modeData) === isDirectionInput(input).
+ */
+const buildInputModeData = (modeData: ModeData, input: Choice | Direction): ModeData => {
+  if (isDirectionPhase(modeData)) {
+    // Cast needed: TypeScript can't infer spread of DirectionsDirectionPhase | CountdownDirDirectionPhase
+    return { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as
+      DirectionsDirectionPhase | CountdownDirDirectionPhase;
+  }
+  // modeData is narrowed to RPS phases — no cast needed
+  return buildRpsInputData({ modeData, choice: input as Choice, ai: getRandomChoice() });
+};
+
 export const useGameStore = create<GameState>()((set, get) => ({
   phase: "idle",
   score: 0,
@@ -241,7 +263,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     makeInput: (input: Choice | Direction) => {
       const { phase, score, phaseStartedAt, modeData, actions: { endGame } } = get();
-      const isDir = (DIRECTIONS as readonly string[]).includes(input);
+      const isDir = isDirectionInput(input);
 
       if (isDir && modeData.gameMode !== "directions" && modeData.gameMode !== "countdownDirections") return;
       if (phase === "idle") return;
@@ -250,18 +272,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const choosePhase = getChoosePhase(modeData);
       const gracePhase = getGracePhase(modeData);
 
-      const expectsDirection = (modeData.gameMode === "directions" || modeData.gameMode === "countdownDirections") && modeData.isDirectionRound;
-      const isWrongType = isDir !== expectsDirection;
-      if (isWrongType) return endGame("wrong_type");
+      if (isDir !== isDirectionPhase(modeData)) return endGame("wrong_type");
 
-      const buildUpdate = (): Partial<GameState> => isDir
-        ? { modeData: { ...modeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase | CountdownDirDirectionPhase }
-        : { modeData: buildRpsInputData({ modeData: modeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase, choice: input as Choice, ai: getRandomChoice() }) };
-
-      if (phase === choosePhase) return set(buildUpdate());
+      if (phase === choosePhase) return set({ modeData: buildInputModeData(modeData, input) });
       if (phase === gracePhase) {
         if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early");
-        return set({ ...buildUpdate(), phase: choosePhase, phaseStartedAt: Date.now() });
+        return set({ modeData: buildInputModeData(modeData, input), phase: choosePhase, phaseStartedAt: Date.now() });
       }
       if (phase === "result") {
         // Check if the NEXT round's choose phase is "rock" (grace falls in this result)
@@ -269,14 +285,10 @@ export const useGameStore = create<GameState>()((set, get) => ({
         const nextChoosePhase = getChoosePhase(nextModeData);
         if (nextChoosePhase !== "rock") return endGame("too_early");
         if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early");
-        const nextExpectsDir = (nextModeData.gameMode === "directions" || nextModeData.gameMode === "countdownDirections") && nextModeData.isDirectionRound;
-        if (isDir !== nextExpectsDir) return endGame("wrong_type");
-        const update: Partial<GameState> = isDir
-          ? { modeData: { ...nextModeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase | CountdownDirDirectionPhase }
-          : { modeData: buildRpsInputData({ modeData: nextModeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase, choice: input as Choice, ai: getRandomChoice() }) };
-        return set({ ...update, phase: nextChoosePhase, phaseStartedAt: Date.now() });
+        if (isDir !== isDirectionPhase(nextModeData)) return endGame("wrong_type");
+        return set({ modeData: buildInputModeData(nextModeData, input), phase: nextChoosePhase, phaseStartedAt: Date.now() });
       }
-      
+
       return endGame("too_early");
     },
 
