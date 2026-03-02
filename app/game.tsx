@@ -151,11 +151,11 @@ export default function GameScreen() {
   const rpsButtonsEnabled = gameMode === "countdown" || gameMode === "countdownDirections"
     ? (phase === choosePhase || (gracePhase !== null && phase === gracePhase)) && !playerChoice && !isDirectionRound
     : (phase === "scissors" && !playerChoice && !isDirectionRound);
-  const rpsButtonsDisabled = !rpsButtonsEnabled && isPlaying;
+  const rpsButtonsDisabled = !rpsButtonsEnabled && isPlaying && phase !== "result";
   const directionButtonsEnabled = gameMode === "countdownDirections"
     ? (phase === choosePhase || (gracePhase !== null && phase === gracePhase)) && !playerDirectionChoice && isDirectionRound
     : phase === "scissors" && !playerDirectionChoice;
-  const directionButtonsDisabled = !directionButtonsEnabled && isPlaying;
+  const directionButtonsDisabled = !directionButtonsEnabled && isPlaying && phase !== "result";
   const isGameOver = !isPlaying && !!mistakeReason;
 
   const attemptsRemaining = directionAttemptsLeft - 1;

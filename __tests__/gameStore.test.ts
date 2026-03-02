@@ -65,7 +65,7 @@ describe("useGameStore edge cases", () => {
     expect(useGameStore.getState().isPlaying).toBe(false);
   });
 
-  it("makeInput is a no-op during result phase", () => {
+  it("makeInput during result phase ends game with too_early (classic)", () => {
     // Setup: start game, advance to scissors, make a choice, advance to result
     jest.spyOn(Math, "random").mockReturnValue(0);
     const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
@@ -77,9 +77,10 @@ describe("useGameStore edge cases", () => {
     advancePhase(); // scissors + playerChoice → result
     expect(useGameStore.getState().phase).toBe("result");
 
-    // Now try makeInput during result - should be no-op
+    // makeInput during result in classic mode → too_early (result is interactive)
     useGameStore.getState().actions.makeInput("paper");
-    expect(useGameStore.getState().phase).toBe("result");
+    expect(useGameStore.getState().phase).toBe("idle");
+    expect(useGameStore.getState().mistakeReason).toBe("too_early");
   });
 
   it("advancePhase from scissors with playerChoice transitions to result then next round", () => {
@@ -1090,5 +1091,234 @@ describe("useGameStore countdownDirections mode", () => {
     makeInput("down"); // already set → no-op
     const mData = useGameStore.getState().modeData;
     expect(mData.gameMode === "countdownDirections" && mData.isDirectionRound ? mData.playerInput : null).toBe("up");
+  });
+
+  it("cS=2 result grace: RPS input creates new round (countdown mode)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdown");
+
+    // Complete state 3 → state 2
+    advancePhase(); advancePhase();
+    makeInput("rock"); // draw
+    advancePhase(); advancePhase(); // scissors → result → rock (now cS=2)
+
+    // State 2: paper is choose phase
+    expect(mdCountdownState()).toBe(2);
+    advancePhase(); // rock → paper
+    makeInput("paper"); // win on rock
+    advancePhase(); // paper → result
+
+    expect(useGameStore.getState().phase).toBe("result");
+
+    // Advance into grace window
+    const t = getRoundTimings(2);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Grace press during cS=2 result → creates new round with cS=1
+    makeInput("paper");
+    expect(useGameStore.getState().phase).toBe("rock");
+    expect(mdCountdownState()).toBe(1);
+    expect(md().playerInput).toBe("paper");
+  });
+
+  it("cS=2 result grace: direction input in countdown mode is ignored (no-op)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdown");
+
+    // Complete state 3 → state 2
+    advancePhase(); advancePhase();
+    makeInput("rock");
+    advancePhase(); advancePhase();
+
+    expect(mdCountdownState()).toBe(2);
+    advancePhase(); // rock → paper
+    makeInput("paper");
+    advancePhase(); // paper → result
+
+    const t = getRoundTimings(2);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Direction press in countdown mode → no-op (filtered by gameMode check)
+    makeInput("up");
+    expect(useGameStore.getState().phase).toBe("result");
+  });
+
+  it("cS=1 result: press ends game with too_early (no grace here)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdown");
+
+    // Complete state 3 → 2 → 1
+    advancePhase(); advancePhase();
+    makeInput("rock");
+    advancePhase(); advancePhase();
+    advancePhase();
+    makeInput("rock");
+    advancePhase(); advancePhase();
+
+    expect(mdCountdownState()).toBe(1);
+    makeInput("paper"); // win on rock
+    advancePhase(); // rock → result
+
+    const t = getRoundTimings(2);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Press during cS=1 result → too_early (next is cS=3, choose=scissors, not rock)
+    makeInput("paper");
+    expect(useGameStore.getState().mistakeReason).toBe("too_early");
+  });
+
+  it("cS=3 result: press ends game with too_early (no grace here)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdown");
+
+    // Complete state 3
+    advancePhase(); advancePhase();
+    makeInput("rock"); // draw
+    advancePhase(); // scissors → result
+
+    expect(useGameStore.getState().phase).toBe("result");
+
+    const t = getRoundTimings(0);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Press during cS=3 result → too_early (next is cS=2, choose=paper, not rock)
+    makeInput("paper");
+    expect(useGameStore.getState().mistakeReason).toBe("too_early");
+  });
+
+  it("cS=2 result grace: wrong_type direction in countdownDirections (draw → next is RPS)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdownDirections");
+
+    // Complete state 3 → state 2 with draw
+    advancePhase(); advancePhase();
+    makeInput("rock"); // draw
+    advancePhase(); advancePhase(); // scissors → result → rock (now cS=2)
+
+    // State 2: paper is choose phase
+    expect(mdCdState()).toBe(2);
+    advancePhase(); // rock → paper
+    makeInput("rock"); // draw on paper choose
+    advancePhase(); // paper → result
+
+    expect(useGameStore.getState().phase).toBe("result");
+
+    const t = getRoundTimings(2);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Grace press: next round is RPS (draw → COUNTDOWN_DIR_RPS_RESET), direction should be wrong_type
+    makeInput("up");
+    expect(useGameStore.getState().mistakeReason).toBe("wrong_type");
+  });
+
+  it("cS=2 result grace: wrong_type direction in countdownDirections (win → next is direction round)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock, AI dir up
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdownDirections");
+
+    // Complete state 3 → state 2
+    advancePhase(); advancePhase();
+    makeInput("rock"); // draw
+    advancePhase(); advancePhase(); // scissors → result → rock (now cS=2)
+
+    // State 2: paper is choose phase
+    expect(mdCdState()).toBe(2);
+    advancePhase(); // rock → paper
+    makeInput("paper"); // win on rock → next round will be direction round
+    advancePhase(); // paper → result
+
+    expect(useGameStore.getState().phase).toBe("result");
+
+    const t = getRoundTimings(2);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Grace press: direction during RPS result → early wrong_type (before phase-specific logic)
+    makeInput("up");
+    expect(useGameStore.getState().mistakeReason).toBe("wrong_type");
+  });
+
+  it("cS=2 result grace: wrong_type RPS in countdownDirections (win → next is direction round)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock, AI dir up
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdownDirections");
+
+    // Complete state 3 → state 2
+    advancePhase(); advancePhase();
+    makeInput("rock"); // draw
+    advancePhase(); advancePhase(); // scissors → result → rock (now cS=2)
+
+    // State 2: paper is choose phase
+    expect(mdCdState()).toBe(2);
+    advancePhase(); // rock → paper
+    makeInput("paper"); // win on rock → next round will be direction round
+    advancePhase(); // paper → result
+
+    expect(useGameStore.getState().phase).toBe("result");
+
+    const t = getRoundTimings(2);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Grace press: RPS input matches current round type (passes early check),
+    // but next round expects direction → wrong_type at result grace logic
+    makeInput("rock");
+    expect(useGameStore.getState().mistakeReason).toBe("wrong_type");
+  });
+
+  it("cS=2 result grace: direction accepted when next round is also direction (countdownDirections)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock, AI dir up
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdownDirections");
+
+    // Win RPS at cS=3 → direction round at cS=2
+    advancePhase(); advancePhase();
+    makeInput("paper"); // win vs rock
+    advancePhase(); // scissors → result
+
+    // Advance past result to direction round at cS=2
+    advancePhase(); // result → rock (direction round, cS=2, attemptsLeft=2)
+    expect(useGameStore.getState().phase).toBe("rock");
+    const mData = useGameStore.getState().modeData;
+    expect(mData.gameMode === "countdownDirections" && mData.isDirectionRound).toBe(true);
+
+    // Wrong direction guess (AI picks up=0, we pick down)
+    advancePhase(); // rock → paper (grace phase for cS=2)
+    makeInput("down"); // wrong direction, attemptsLeft was 2 → next round: direction, cS=1, attemptsLeft=1
+    advancePhase(); // paper → result
+
+    expect(useGameStore.getState().phase).toBe("result");
+    expect(mdCdState()).toBe(2); // still cS=2 until next round
+
+    const t = getRoundTimings(2);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Grace press: direction matches current (direction) and next (direction) round type
+    makeInput("up");
+    expect(useGameStore.getState().phase).toBe("rock");
+    expect(mdCdState()).toBe(1);
+  });
+
+  it("cS=2 result grace: press before grace window ends game with too_early", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdown");
+
+    // Complete state 3 → state 2
+    advancePhase(); advancePhase();
+    makeInput("rock");
+    advancePhase(); advancePhase();
+
+    expect(mdCountdownState()).toBe(2);
+    advancePhase(); // rock → paper
+    makeInput("paper");
+    advancePhase(); // paper → result
+
+    // Press immediately (before grace window)
+    makeInput("paper");
+    expect(useGameStore.getState().mistakeReason).toBe("too_early");
   });
 });

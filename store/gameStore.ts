@@ -282,8 +282,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const isDir = (DIRECTIONS as readonly string[]).includes(input);
 
       if (isDir && modeData.gameMode !== "directions" && modeData.gameMode !== "countdownDirections") return;
-      if (phase === "idle" || phase === "result") return;
-      if (modeData.playerInput !== null) return;
+      if (phase === "idle") return;
+      if (modeData.playerInput !== null && phase !== "result") return;
 
       const choosePhase = getChoosePhase(modeData);
       const gracePhase = getGracePhase(modeData);
@@ -301,6 +301,20 @@ export const useGameStore = create<GameState>()((set, get) => ({
         if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early");
         return set({ ...buildUpdate(), phase: choosePhase, phaseStartedAt: Date.now() });
       }
+      if (phase === "result") {
+        // Check if the NEXT round's choose phase is "rock" (grace falls in this result)
+        const nextModeData = getNextRoundModeData(modeData);
+        const nextChoosePhase = getChoosePhase(nextModeData);
+        if (nextChoosePhase !== "rock") return endGame("too_early");
+        if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early");
+        const nextExpectsDir = (nextModeData.gameMode === "directions" || nextModeData.gameMode === "countdownDirections") && nextModeData.isDirectionRound;
+        if (isDir !== nextExpectsDir) return endGame("wrong_type");
+        const update: Partial<GameState> = isDir
+          ? { modeData: { ...nextModeData, playerInput: input as Direction, aiInput: getRandomDirection() } as DirectionsDirectionPhase | CountdownDirDirectionPhase }
+          : { modeData: buildRpsInputData({ modeData: nextModeData as ClassicModeData | DirectionsRpsPhase | CountdownModeData | CountdownDirRpsPhase, choice: input as Choice, ai: getRandomChoice() }) };
+        return set({ ...update, phase: nextChoosePhase, phaseStartedAt: Date.now() });
+      }
+      
       return endGame("too_early");
     },
 
