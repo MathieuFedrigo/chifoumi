@@ -21,6 +21,7 @@ const en = {
     tooEarly: "Too early!",
     tooLate: "Too late!",
     wrongType: "Wrong button!",
+    aiGuessed: "AI guessed your move!",
     idle: "Press Start",
     confirmWin: "Confirm!",
     aiConfirms: "They confirmed!",
@@ -58,6 +59,9 @@ const en = {
     langSystem: "System",
     langEn: "English",
     langFr: "Français",
+    aiGuess: "AI Guess",
+    aiGuessOn: "On",
+    aiGuessOff: "Off",
   },
 } as const;
 

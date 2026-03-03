@@ -9,11 +9,13 @@ interface AppActions {
   cycleThemeMode: () => void;
   setThemeMode: (mode: ThemeMode) => void;
   setLocaleMode: (mode: LocaleMode) => void;
+  setAiGuessEnabled: (enabled: boolean) => void;
 }
 
 interface AppState {
   themeMode: ThemeMode;
   localeMode: LocaleMode;
+  aiGuessEnabled: boolean;
   actions: AppActions;
 }
 
@@ -24,6 +26,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       themeMode: "system",
       localeMode: "system",
+      aiGuessEnabled: false,
 
       actions: {
         cycleThemeMode: () => {
@@ -35,6 +38,7 @@ export const useAppStore = create<AppState>()(
 
         setThemeMode: (mode) => set({ themeMode: mode }),
         setLocaleMode: (mode) => set({ localeMode: mode }),
+        setAiGuessEnabled: (enabled) => set({ aiGuessEnabled: enabled }),
       },
     }),
     {
@@ -43,6 +47,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         themeMode: state.themeMode,
         localeMode: state.localeMode,
+        aiGuessEnabled: state.aiGuessEnabled,
       }),
     }
   )

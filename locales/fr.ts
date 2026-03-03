@@ -27,6 +27,7 @@ export default {
     tooEarly: "Trop tôt !",
     tooLate: "Trop tard !",
     wrongType: "Mauvais bouton !",
+    aiGuessed: "L'IA a deviné ton coup !",
     idle: "Appuyez sur Commencer",
     confirmWin: "Confirmé !",
     aiConfirms: "Ils ont confirmé !",
@@ -64,5 +65,8 @@ export default {
     langSystem: "Système",
     langEn: "English",
     langFr: "Français",
+    aiGuess: "Prédiction IA",
+    aiGuessOn: "Activée",
+    aiGuessOff: "Désactivée",
   },
 } satisfies DeepString<typeof en>;
