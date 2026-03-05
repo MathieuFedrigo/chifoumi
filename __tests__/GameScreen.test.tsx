@@ -1290,3 +1290,357 @@ describe("GameScreen – Interactive result phase", () => {
     expect(screen.getByText("Too early!")).toBeTruthy();
   });
 });
+
+describe("GameScreen – AI Guess", () => {
+  beforeEach(() => {
+    const { useAppStore } = require("@/store/appStore");
+    useAppStore.getState().actions.setAiGuessEnabled(true);
+  });
+
+  afterEach(() => {
+    const { useAppStore } = require("@/store/appStore");
+    useAppStore.getState().actions.setAiGuessEnabled(false);
+  });
+
+  it("ends game with ai_guessed when pressing predicted button", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderApp();
+
+    // Round 1: pick paper
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Round 2: pick paper again — AI now expects paper on round 3
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Round 3: AI guess should be "paper" (repeat rule). Press paper → ai_guessed
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("AI guessed your move!")).toBeTruthy();
+  });
+
+  it("does not end game when pressing non-predicted button", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderApp();
+
+    // Round 1: pick paper
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Round 2: pick paper again
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Round 3: AI guess is "paper", but press rock → not guessed, should work
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!"));
+
+    expect(screen.getByText("Draw!")).toBeTruthy();
+  });
+
+  it("does not trigger ai_guessed when feature is disabled", async () => {
+    const { useAppStore } = require("@/store/appStore");
+    useAppStore.getState().actions.setAiGuessEnabled(false);
+
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderApp();
+
+    // Play 2 rounds with paper, then press paper again
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+
+    // Should not be game over — should show result
+    expect(screen.getByText("You Win!")).toBeTruthy();
+  });
+
+  it("triggers ai_guessed during grace period input", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderApp();
+
+    // Round 1: pick paper during grace
+    const { beatInterval, graceBefore } = getRoundTimings(0);
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
+    act(() => { jest.advanceTimersByTime(beatInterval - graceBefore); }); // into grace
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Round 2: pick paper during grace again
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
+    act(() => { jest.advanceTimersByTime(beatInterval - graceBefore); }); // into grace
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Round 3: AI guess = paper (repeat), press paper during grace → ai_guessed
+    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper (reveal phase)
+    act(() => { jest.advanceTimersByTime(beatInterval - graceBefore); }); // into grace
+    await user.press(screen.getByLabelText("Paper!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("AI guessed your move!")).toBeTruthy();
+  });
+
+  it("computes ai guess at cS=3 result→rock transition (cS=2 reveal=rock)", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    // State 3 round 1: pick rock (draw)
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!"));
+    advanceResultToRock();
+
+    // State 2 round 2: pick rock (draw)
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Rock!"));
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // paper → result
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock
+
+    // State 1 round 3: choose=rock, reveal=result. AI guess computed during cS=2 choose→result.
+    // History has 2 rounds of "rock" → AI guess = "rock"
+    // Press rock → ai_guessed
+    await user.press(screen.getByLabelText("Rock!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("AI guessed your move!")).toBeTruthy();
+  });
+
+  it("computes ai guess during cS=3 result→rock (next is cS=2 with reveal=rock)", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    // Need to play full cycle cS=3→2→1→3 to have 2 same choices in cS=3 result→rock
+    // Round 1 (cS=3): pick rock
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!"));
+    advanceResultToRock();
+
+    // Round 2 (cS=2): pick rock
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Rock!"));
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // paper → result
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock (cS=1)
+
+    // Round 3 (cS=1): pick rock
+    const t2 = getRoundTimings(2);
+    await user.press(screen.getByLabelText("Rock!"));
+    act(() => { jest.advanceTimersByTime(t2.beatInterval); }); // rock → result
+    act(() => { jest.advanceTimersByTime(t2.beatInterval); }); // result → rock (cS=3)
+    // 3 rounds of rock in history. cS=3 result→rock transitions to cS=2.
+    // getAiGuessRevealPhase(cS=2) = "rock" → computes AI guess in result phase.
+    // AI guess = "rock" (repeat).
+
+    // Round 4 (cS=3): pick rock
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!"));
+    advanceResultToRock();
+    // This cS=3 result→rock also transitions to cS=2. AI guess = "rock" again.
+
+    // Round 5 (cS=2): choose=paper. AI guess revealed at "rock" phase already.
+    // Press rock on paper choose phase → but rock during paper is grace or choose?
+    // cS=2 choose=paper. We're at rock phase. Press rock → too early (not in grace).
+    // Actually, I just need to reach paper phase and press rock:
+    const t4 = getRoundTimings(4);
+    act(() => { jest.advanceTimersByTime(t4.beatInterval); }); // rock → paper (choose for cS=2)
+    await user.press(screen.getByLabelText("Rock!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("AI guessed your move!")).toBeTruthy();
+  });
+
+  it("computes ai guess during cS=2 choose→result (next is cS=1 with reveal=result)", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    // Round 1 (cS=3): pick rock
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!"));
+    advanceResultToRock();
+
+    // Round 2 (cS=2): pick rock (choose=paper)
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Rock!"));
+    // At this point: 2 rounds of "rock" in history + current entry.
+    // Next round is cS=1, reveal = "result" → computes AI guess in choose phase.
+    // AI guess = "rock" (repeat rule on [round1(rock), round2(rock)]).
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // paper → result
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock (cS=1)
+
+    // Round 3 (cS=1): choose=rock. AI guess already revealed ("result" path kept it).
+    // Press rock → ai_guessed
+    await user.press(screen.getByLabelText("Rock!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("AI guessed your move!")).toBeTruthy();
+  });
+
+  it("triggers ai_guessed during result-grace input (cS=2 result grace)", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderCountdownApp();
+
+    // Round 1 (cS=3): pick rock
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Rock!"));
+    advanceResultToRock();
+
+    // Round 2 (cS=2): pick rock
+    const t1 = getRoundTimings(1);
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
+    await user.press(screen.getByLabelText("Rock!"));
+    act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // paper → result
+    // Now in result for cS=2. Next = cS=1, choose=rock. Grace falls in this result.
+    // AI guess was computed during choose→result (step b): "rock" (repeat rule).
+    // Advance into grace window and press rock → ai_guessed via result-grace checkAiGuess
+    const t2 = getRoundTimings(2);
+    act(() => { jest.advanceTimersByTime(t2.beatInterval - t2.graceBefore); }); // into grace
+    await user.press(screen.getByLabelText("Rock!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("AI guessed your move!")).toBeTruthy();
+  });
+
+  it("highlights direction button and triggers ai_guessed in directions mode", async () => {
+    // AI picks rock for RPS, up for directions
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    // Round 1 RPS: win with paper → enter direction round
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+    // Direction round: press up → matches AI up
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Up"));
+    advanceResultToRock();
+
+    // Round 2 RPS: win with paper → enter direction round
+    advanceToScissors(2);
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock(2);
+    // Direction round: press up again → matches AI up
+    advanceToScissors(3);
+    await user.press(screen.getByLabelText("Up"));
+    advanceResultToRock(3);
+
+    // Round 3 RPS: win with paper → enter direction round
+    // AI guess for RPS = "paper" (repeat rule on 2 paper rounds)
+    advanceToScissors(4);
+    // Press paper → ai_guessed
+    await user.press(screen.getByLabelText("Paper!"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("AI guessed your move!")).toBeTruthy();
+  });
+
+  it("highlights direction button when AI guesses a direction", async () => {
+    // AI picks rock for RPS, up for directions
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderDirectionsApp();
+
+    // Round 1: win RPS with paper → direction round → press up (match)
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Up")); // direction 1: up
+    advanceResultToRock();
+
+    // Round 2: win RPS with paper → direction round → press up (match)
+    advanceToScissors(2);
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock(2);
+    advanceToScissors(3);
+    await user.press(screen.getByLabelText("Up")); // direction 2: up
+    advanceResultToRock(3);
+
+    // Round 3: win RPS with rock (change choice to avoid RPS ai_guessed)
+    advanceToScissors(4);
+    await user.press(screen.getByLabelText("Rock!")); // draw vs rock
+    advanceResultToRock(4);
+
+    // Round 4: RPS with paper (different from rock, avoids RPS repeat guess)
+    advanceToScissors(5);
+    await user.press(screen.getByLabelText("Paper!")); // win → direction round
+    advanceResultToRock(5);
+
+    // Now in direction round. History has 2 "up" direction rounds.
+    // AI guess for directions = "up" (repeat rule).
+    // At paper phase (reveal), Up button should be highlighted.
+    // Advance to paper (grace/reveal phase):
+    const t6 = getRoundTimings(6);
+    act(() => { jest.advanceTimersByTime(t6.beatInterval); }); // rock → paper
+    // At this point, showHighlight should be true and aiGuess should be "up".
+    // Press "up" → ai_guessed
+    act(() => { jest.advanceTimersByTime(t6.beatInterval); }); // paper → scissors (choose)
+    await user.press(screen.getByLabelText("Up"));
+
+    expect(screen.getByText("Game Over")).toBeTruthy();
+    expect(screen.getByText("AI guessed your move!")).toBeTruthy();
+  });
+
+  it("highlights RPS button in classic mode when guess is active", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock
+    const user = userEvent.setup();
+    renderApp();
+
+    // Round 1: pick paper
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Round 2: pick paper — AI now expects paper on round 3
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Round 3: AI guess is "paper". Advance to scissors (choose) and press Rock.
+    advanceToScissors(2);
+    await user.press(screen.getByLabelText("Rock!"));
+
+    // Should show result (not ai_guessed since we pressed rock, not paper)
+    expect(screen.getByText("Draw!")).toBeTruthy();
+  });
+
+  it("no ai_guessed on first 2 rounds (not enough history)", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const user = userEvent.setup();
+    renderApp();
+
+    // Round 1: pick paper — no history yet, no guess
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    expect(screen.getByText("You Win!")).toBeTruthy();
+    advanceResultToRock();
+
+    // Round 2: pick paper — only 1 history entry, no guess yet
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    expect(screen.getByText("You Win!")).toBeTruthy();
+  });
+});

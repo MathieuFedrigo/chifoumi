@@ -6,6 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { useTheme } from "@/hooks/useTheme";
 import { useGameStore, useGameStoreActions, getChoosePhase, getGracePhase } from "@/store/gameStore";
+import { useAppStore } from "@/store/appStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { useGameLoop } from "@/hooks/useGameLoop";
 import type { Choice, Direction, GameMode, RoundResult } from "@/store/gameStore";
@@ -43,6 +44,9 @@ export default function GameScreen() {
   const mistakeReason = useGameStore((s) => s.mistakeReason);
   const phaseStartedAt = useGameStore((s) => s.phaseStartedAt);
   const modeData = useGameStore((s) => s.modeData);
+  const aiGuess = useGameStore((s) => s.aiGuess);
+  const aiGuessRevealed = useGameStore((s) => s.aiGuessRevealed);
+  const aiGuessEnabled = useAppStore((s) => s.aiGuessEnabled);
   const { startGame, makeInput } = useGameStoreActions();
 
   // Narrow modeData into aliased variables matching the rest of the component
@@ -133,7 +137,9 @@ export default function GameScreen() {
         ? t("game.tooLate")
         : mistakeReason === "wrong_type"
           ? t("game.wrongType")
-          : "";
+          : mistakeReason === "ai_guessed"
+            ? t("game.aiGuessed")
+            : "";
 
   const directionResultText = (() => {
     if (!playerDirectionChoice || !directionAiChoice) return "";
@@ -149,6 +155,7 @@ export default function GameScreen() {
     isDirectionRound && (phase === "result" || (phase === choosePhase && !!playerDirectionChoice));
 
   const isGameOver = !isPlaying && !!mistakeReason;
+  const showHighlight = aiGuessEnabled && aiGuessRevealed && aiGuess !== null && isPlaying;
 
   const attemptsRemaining = directionAttemptsLeft - 1;
 
@@ -306,22 +313,22 @@ export default function GameScreen() {
         <View style={styles.gameButtonsRow}>
           <View style={styles.directionButtons}>
             <View style={{ position: "absolute", top: 0, left: 50 }}>
-              <DirBtn dir="up" onPress={handleDirectionChoice} colors={theme.colors} size={56} />
+              <DirBtn dir="up" onPress={handleDirectionChoice} colors={theme.colors} size={56} highlighted={showHighlight && aiGuess === "up"} />
             </View>
             <View style={{ position: "absolute", top: 50, left: 0 }}>
-              <DirBtn dir="left" onPress={handleDirectionChoice} colors={theme.colors} size={56} />
+              <DirBtn dir="left" onPress={handleDirectionChoice} colors={theme.colors} size={56} highlighted={showHighlight && aiGuess === "left"} />
             </View>
             <View style={{ position: "absolute", top: 50, left: 100 }}>
-              <DirBtn dir="right" onPress={handleDirectionChoice} colors={theme.colors} size={56} />
+              <DirBtn dir="right" onPress={handleDirectionChoice} colors={theme.colors} size={56} highlighted={showHighlight && aiGuess === "right"} />
             </View>
             <View style={{ position: "absolute", top: 100, left: 50 }}>
-              <DirBtn dir="down" onPress={handleDirectionChoice} colors={theme.colors} size={56} />
+              <DirBtn dir="down" onPress={handleDirectionChoice} colors={theme.colors} size={56} highlighted={showHighlight && aiGuess === "down"} />
             </View>
           </View>
-          <RpsChoices onPress={handleChoice} colors={theme.colors} size="small" />
+          <RpsChoices onPress={handleChoice} colors={theme.colors} size="small" highlightedChoice={showHighlight && !isDirectionRound ? aiGuess as Choice : null} />
         </View>
       ) : (
-        <RpsChoices onPress={handleChoice} colors={theme.colors} />
+        <RpsChoices onPress={handleChoice} colors={theme.colors} highlightedChoice={showHighlight ? aiGuess as Choice : null} />
       )}
     </View>
   );
@@ -464,15 +471,23 @@ interface DirBtnProps {
   onPress: (dir: Direction) => void;
   colors: Theme["colors"];
   size?: number;
+  highlighted?: boolean;
 }
 
-function DirBtn({ dir, onPress, colors, size = 80 }: DirBtnProps) {
+function DirBtn({ dir, onPress, colors, size = 80, highlighted }: DirBtnProps) {
   const { t } = useTranslation();
   return (
     <Pressable
       style={[
         styles.choiceButton,
-        { backgroundColor: colors.surface, borderColor: colors.border, width: size, height: size, borderRadius: size * 0.12, transform: [{ rotate: "45deg" }] },
+        {
+          backgroundColor: highlighted ? colors.warning : colors.surface,
+          borderColor: highlighted ? colors.warning : colors.border,
+          width: size,
+          height: size,
+          borderRadius: size * 0.12,
+          transform: [{ rotate: "45deg" }],
+        },
       ]}
       onPressIn={() => onPress(dir)}
       accessibilityRole="button"
@@ -495,9 +510,10 @@ interface RpsChoicesProps {
   onPress: (choice: Choice) => void;
   colors: Theme["colors"];
   size?: "regular" | "small";
+  highlightedChoice?: Choice | null;
 }
 
-function RpsChoices({ onPress, colors, size = "regular" }: RpsChoicesProps) {
+function RpsChoices({ onPress, colors, size = "regular", highlightedChoice }: RpsChoicesProps) {
   const buttonSize = size === "small" ? 68 : 80;
   const rowGap     = size === "small" ? 16  : 20;
   const columnGap  = size === "small" ? 4  : 12;
@@ -505,36 +521,54 @@ function RpsChoices({ onPress, colors, size = "regular" }: RpsChoicesProps) {
   return (
     <View style={[styles.choiceButtons, { gap: columnGap }]}>
       <View style={[styles.rpsButtonRow, { gap: rowGap }]}>
-        {CHOICES.slice(0, 2).map((choice) => (
-          <Pressable
-            key={choice}
-            style={[
-              styles.choiceButton,
-              { backgroundColor: colors.surface, borderColor: colors.border, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
-            ]}
-            onPressIn={() => onPress(choice)}
-            accessibilityRole="button"
-            accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
-          >
-            <FontAwesome5 name={CHOICE_ICONS[choice]} size={40} color={colors.text} />
-          </Pressable>
-        ))}
+        {CHOICES.slice(0, 2).map((choice) => {
+          const isHighlighted = highlightedChoice === choice;
+          return (
+            <Pressable
+              key={choice}
+              style={[
+                styles.choiceButton,
+                {
+                  backgroundColor: isHighlighted ? colors.warning : colors.surface,
+                  borderColor: isHighlighted ? colors.warning : colors.border,
+                  width: buttonSize,
+                  height: buttonSize,
+                  borderRadius: buttonSize / 2,
+                },
+              ]}
+              onPressIn={() => onPress(choice)}
+              accessibilityRole="button"
+              accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
+            >
+              <FontAwesome5 name={CHOICE_ICONS[choice]} size={40} color={colors.text} />
+            </Pressable>
+          );
+        })}
       </View>
       <View style={[styles.rpsButtonRow, { gap: rowGap }]}>
-        {CHOICES.slice(2).map((choice) => (
-          <Pressable
-            key={choice}
-            style={[
-              styles.choiceButton,
-              { backgroundColor: colors.surface, borderColor: colors.border, width: buttonSize, height: buttonSize, borderRadius: buttonSize / 2 },
-            ]}
-            onPressIn={() => onPress(choice)}
-            accessibilityRole="button"
-            accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
-          >
-            <FontAwesome5 name={CHOICE_ICONS[choice]} size={40} color={colors.text} />
-          </Pressable>
-        ))}
+        {CHOICES.slice(2).map((choice) => {
+          const isHighlighted = highlightedChoice === choice;
+          return (
+            <Pressable
+              key={choice}
+              style={[
+                styles.choiceButton,
+                {
+                  backgroundColor: isHighlighted ? colors.warning : colors.surface,
+                  borderColor: isHighlighted ? colors.warning : colors.border,
+                  width: buttonSize,
+                  height: buttonSize,
+                  borderRadius: buttonSize / 2,
+                },
+              ]}
+              onPressIn={() => onPress(choice)}
+              accessibilityRole="button"
+              accessibilityLabel={t(`game.${choice}` as "game.rock" | "game.paper" | "game.scissors")}
+            >
+              <FontAwesome5 name={CHOICE_ICONS[choice]} size={40} color={colors.text} />
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );

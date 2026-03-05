@@ -1,11 +1,14 @@
 import { create } from "zustand";
 import * as Sentry from "@sentry/react-native";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
+import { computeAiGuess } from "@/lib/aiGuess";
+import type { AiGuess, RoundType } from "@/lib/aiGuess";
+import { useAppStore } from "@/store/appStore";
 
 export type Choice = "rock" | "paper" | "scissors";
 export type GamePhase = "idle" | "rock" | "paper" | "scissors" | "result";
 export type RoundResult = "win" | "lose" | "draw";
-export type MistakeReason = "too_early" | "too_late" | "wrong_type";
+export type MistakeReason = "too_early" | "too_late" | "wrong_type" | "ai_guessed";
 export type Direction = "up" | "down" | "left" | "right";
 export type GameMode = "classic" | "directions" | "countdown" | "countdownDirections";
 export type CountdownState = 3 | 2 | 1;
@@ -126,6 +129,8 @@ interface GameState {
   phaseStartedAt: number;
   modeData: ModeData;
   roundHistory: HistoryEntry[];
+  aiGuess: AiGuess;
+  aiGuessRevealed: boolean;
   actions: GameActions;
 }
 
@@ -187,6 +192,13 @@ const COUNTDOWN_DIR_DIR_RESET = {
   isDirectionRound: true ,
   countdownState: 3,
 } as const;
+
+/** Phase at which AI guess should be revealed (grace phase or "result" if no grace). */
+export const getAiGuessRevealPhase = (modeData: ModeData): GamePhase | "result" =>
+  getGracePhase(modeData) ?? "result";
+
+const getRoundType = (modeData: ModeData): RoundType =>
+  isDirectionPhase(modeData) ? "directions" : "rps";
 
 const isGracePeriodActive = ({ phaseStartedAt, score }: { phaseStartedAt: number; score: number }): boolean => {
   const { beatInterval, graceBefore } = getRoundTimings(score);
@@ -310,6 +322,24 @@ const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason, inp
   };
 };
 
+const revealGuess = (history: HistoryEntry[], forRoundType: RoundType): Partial<GameState> => ({
+  aiGuess: computeAiGuess({ history, forRoundType }),
+  aiGuessRevealed: true,
+});
+
+const GUESS_RESET: Partial<GameState> = { aiGuess: null, aiGuessRevealed: false };
+
+/**
+ * Returns the aiGuess update when entering `atPhase` for the next round.
+ * Reveals if atPhase is the reveal phase, resets if it won't be revealed at "result", keeps ({}) otherwise.
+ */
+const guessUpdateAtPhase = (atPhase: GamePhase, modeData: ModeData, history: HistoryEntry[]): Partial<GameState> => {
+  const revealPhase = getAiGuessRevealPhase(modeData);
+  if (revealPhase === atPhase) return revealGuess(history, getRoundType(modeData));
+  if (revealPhase === "result") return {}; // already set in choose phase, keep it
+  return GUESS_RESET;
+};
+
 export const useGameStore = create<GameState>()((set, get) => ({
   phase: "idle",
   score: 0,
@@ -318,6 +348,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
   phaseStartedAt: Date.now(),
   modeData: CLASSIC_RESET,
   roundHistory: [],
+  aiGuess: null,
+  aiGuessRevealed: false,
 
   actions: {
     startGame: (mode: GameMode = "classic") => {
@@ -334,11 +366,14 @@ export const useGameStore = create<GameState>()((set, get) => ({
         phaseStartedAt: Date.now(),
         modeData: MODE_RESET[mode],
         roundHistory: [],
+        aiGuess: null,
+        aiGuessRevealed: false,
       });
     },
 
     makeInput: (input: Choice | Direction) => {
-      const { phase, score, phaseStartedAt, modeData, actions: { endGame } } = get();
+      const { phase, score, phaseStartedAt, modeData, aiGuess, actions: { endGame } } = get();
+      const aiGuessEnabled = useAppStore.getState().aiGuessEnabled;
       const isDir = isDirectionInput(input);
 
       if (isDir && modeData.gameMode !== "directions" && modeData.gameMode !== "countdownDirections") return;
@@ -384,6 +419,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
       if (isDir !== isDirectionPhase(modeData)) return endGame("wrong_type", input);
 
+      if (aiGuessEnabled && aiGuess === input) return endGame("ai_guessed", input);
+
       if (phase === choosePhase) return set({ modeData: buildInputModeData(modeData, input) });
       if (phase === gracePhase) {
         if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early", input);
@@ -394,16 +431,34 @@ export const useGameStore = create<GameState>()((set, get) => ({
     },
 
     advancePhase: () => {
-      const { phase, modeData, actions: { endGame } } = get();
+      const { phase, modeData, roundHistory, actions: { endGame } } = get();
+      const aiGuessEnabled = useAppStore.getState().aiGuessEnabled;
       const choosePhase = getChoosePhase(modeData);
 
       // Advance through R-P-S phases before choose
       const nextPhase = getNextPhase({ phase, choosePhase });
-      if (nextPhase) return set({ phase: nextPhase, phaseStartedAt: Date.now() });
+      if (nextPhase) {
+        const revealPhase = getAiGuessRevealPhase(modeData);
+        return set({
+          phase: nextPhase,
+          phaseStartedAt: Date.now(),
+          ...(aiGuessEnabled && nextPhase === revealPhase && revealGuess(roundHistory, getRoundType(modeData))),
+        });
+      }
 
       // Choose phase: resolve or too_late
       if (phase === choosePhase) {
-        if (modeData.playerInput) return set((s) => ({ phase: "result", score: s.score + 1, phaseStartedAt: Date.now() }));
+        if (modeData.playerInput) {
+          // Peek at next round to decide AI guess timing
+          const nextModeData = getNextRoundModeData(modeData);
+          const entry = isDirectionPhase(modeData) ? buildDirectionHistoryEntry(modeData) : buildRoundHistoryEntry(modeData);
+          return set((s) => ({
+            phase: "result" as const,
+            score: s.score + 1,
+            phaseStartedAt: Date.now(),
+            ...(aiGuessEnabled && guessUpdateAtPhase("result", nextModeData, [...roundHistory, entry])),
+          }));
+        }
         return endGame("too_late");
       }
       if (phase !== "result") return;
@@ -412,7 +467,16 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const entry = isDirectionPhase(modeData)
         ? buildDirectionHistoryEntry(modeData)
         : buildRoundHistoryEntry(modeData);
-      return set({ phase: "rock", phaseStartedAt: Date.now(), modeData: getNextRoundModeData(modeData), roundHistory: [...get().roundHistory, entry] });
+      const newHistory = [...roundHistory, entry];
+      const nextModeData = getNextRoundModeData(modeData);
+
+      return set({
+        phase: "rock",
+        phaseStartedAt: Date.now(),
+        modeData: nextModeData,
+        roundHistory: newHistory,
+        ...(aiGuessEnabled && guessUpdateAtPhase("rock", nextModeData, newHistory)),
+      });
     },
 
     endGame: (reason: MistakeReason, input?: Choice | Direction) => {
