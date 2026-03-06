@@ -4,6 +4,7 @@ import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { computeAiGuess } from "@/lib/aiGuess";
 import type { AiGuess, RoundType } from "@/lib/aiGuess";
 import { useAppStore } from "@/store/appStore";
+import { CLASSIC_RESET, COUNTDOWN_DIR_DIR_RESET, COUNTDOWN_DIR_RPS_RESET, COUNTDOWN_RESET, DIRECTIONS_DIR_RESET, DIRECTIONS_RPS_RESET, GUESS_RESET, MODE_RESET } from "./helpers/RESET_OBJECTS";
 
 export type Choice = "rock" | "paper" | "scissors";
 export type GamePhase = "idle" | "rock" | "paper" | "scissors" | "result";
@@ -13,14 +14,14 @@ export type Direction = "up" | "down" | "left" | "right";
 export type GameMode = "classic" | "directions" | "countdown" | "countdownDirections";
 export type CountdownState = 3 | 2 | 1;
 
-type ClassicModeData = {
+export type ClassicModeData = {
   gameMode: "classic";
   playerInput: Choice | null;
   aiInput: Choice | null;
   roundResult: RoundResult | null;
 };
 
-type DirectionsRpsPhase = {
+export type DirectionsRpsPhase = {
   gameMode: "directions";
   isDirectionRound: false;
   playerInput: Choice | null;
@@ -29,7 +30,7 @@ type DirectionsRpsPhase = {
   directionAttemptsLeft: number;
 };
 
-type DirectionsDirectionPhase = {
+export type DirectionsDirectionPhase = {
   gameMode: "directions";
   isDirectionRound: true;
   playerInput: Direction | null;
@@ -38,7 +39,7 @@ type DirectionsDirectionPhase = {
   directionAttemptsLeft: number;
 };
 
-type CountdownModeData = {
+export type CountdownModeData = {
   gameMode: "countdown";
   countdownState: CountdownState;
   playerInput: Choice | null;
@@ -46,7 +47,7 @@ type CountdownModeData = {
   roundResult: RoundResult | null;
 };
 
-type CountdownDirRpsPhase = {
+export type CountdownDirRpsPhase = {
   gameMode: "countdownDirections";
   countdownState: CountdownState;
   isDirectionRound: false;
@@ -56,7 +57,7 @@ type CountdownDirRpsPhase = {
   directionAttemptsLeft: number;
 };
 
-type CountdownDirDirectionPhase = {
+export type CountdownDirDirectionPhase = {
   gameMode: "countdownDirections";
   countdownState: CountdownState;
   isDirectionRound: true;
@@ -121,7 +122,7 @@ interface GameActions {
   endGame: (reason: MistakeReason, input?: Choice | Direction) => void;
 }
 
-interface GameState {
+export interface GameState {
   phase: GamePhase;
   score: number;
   isPlaying: boolean;
@@ -156,42 +157,6 @@ export const getRandomChoice = (): Choice => {
 export const getRandomDirection = (): Direction => {
   return DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)]!;
 };
-
-const RPS_PHASE_BASE = { playerInput: null, aiInput: null, roundResult: null } as const;
-const DIR_PHASE_BASE = { playerInput: null, aiInput: null, directionAttemptsLeft: 2 } as const;
-const CLASSIC_RESET: ClassicModeData = {
-  gameMode: "classic",
-  ...RPS_PHASE_BASE,
-};
-const DIRECTIONS_RPS_RESET: DirectionsRpsPhase = {
-  gameMode: "directions",
-  ...RPS_PHASE_BASE,
-  isDirectionRound: false,
-  directionAttemptsLeft: 2,
-};
-const COUNTDOWN_RESET: CountdownModeData = {
-  gameMode: "countdown",
-  ...RPS_PHASE_BASE,
-  countdownState: 3,
-};
-const COUNTDOWN_DIR_RPS_RESET: CountdownDirRpsPhase = {
-  gameMode: "countdownDirections",
-  ...RPS_PHASE_BASE,
-  countdownState: 3,
-  isDirectionRound: false,
-  directionAttemptsLeft: 2,
-};
-const DIRECTIONS_DIR_RESET = {
-  gameMode: "directions" ,
-  ...DIR_PHASE_BASE,
-  isDirectionRound: true ,
-} as const;
-const COUNTDOWN_DIR_DIR_RESET = {
-  gameMode: "countdownDirections" ,
-  ...DIR_PHASE_BASE,
-  isDirectionRound: true ,
-  countdownState: 3,
-} as const;
 
 /** Phase at which AI guess should be revealed (grace phase or "result" if no grace). */
 export const getAiGuessRevealPhase = (modeData: ModeData): GamePhase | "result" =>
@@ -248,13 +213,6 @@ const buildRpsInputData = ({
     roundResult,
     directionAttemptsLeft: modeData.directionAttemptsLeft,
   };
-};
-
-const MODE_RESET: Record<GameMode, ModeData> = {
-  classic: CLASSIC_RESET,
-  directions: DIRECTIONS_RPS_RESET,
-  countdown: COUNTDOWN_RESET,
-  countdownDirections: COUNTDOWN_DIR_RPS_RESET,
 };
 
 /**
@@ -326,8 +284,6 @@ const revealGuess = (history: HistoryEntry[], forRoundType: RoundType): Partial<
   aiGuess: computeAiGuess({ history, forRoundType }),
   aiGuessRevealed: true,
 });
-
-const GUESS_RESET: Partial<GameState> = { aiGuess: null, aiGuessRevealed: false };
 
 /**
  * Returns the aiGuess update when entering `atPhase` for the next round.
