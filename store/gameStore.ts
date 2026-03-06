@@ -67,18 +67,18 @@ export type ModeData = ClassicModeData | DirectionsRpsPhase | DirectionsDirectio
 
 export type HistoryEntry = {
   type: "round";
+  isDirectionRound: false;
   choosePhase: GamePhase;
   aiChoice: Choice;
   playerChoice: Choice;
   roundResult: RoundResult;
-  directionRound?: never;
 } | {
   type: "round";
+  isDirectionRound: true;
   choosePhase: GamePhase;
   roundResult: RoundResult;
-  aiChoice?: never;
-  playerChoice?: never;
-  directionRound: { aiDirection: Direction; playerDirection: Direction; matched: boolean };
+  aiDirection: Direction;
+  playerDirection: Direction;
 } | {
   type: "mistake";
   choosePhase: GamePhase;
@@ -265,6 +265,7 @@ const buildRoundHistoryEntry = (modeData: ClassicModeData | DirectionsRpsPhase |
 
   return {
     type: "round",
+    isDirectionRound: false,
     choosePhase,
     aiChoice: modeData.aiInput!,
     playerChoice: modeData.playerInput!,
@@ -278,13 +279,11 @@ const buildDirectionHistoryEntry = (modeData: DirectionsDirectionPhase | Countdo
 
   return {
     type: "round",
+    isDirectionRound: true,
     choosePhase,
     roundResult: modeData.pendingRpsResult,
-    directionRound: {
-      aiDirection: modeData.aiInput!,
-      playerDirection: modeData.playerInput!,
-      matched: modeData.playerInput === modeData.aiInput,
-    },
+    aiDirection: modeData.aiInput!,
+    playerDirection: modeData.playerInput!,
   };
 };
 

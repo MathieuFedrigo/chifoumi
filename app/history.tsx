@@ -107,9 +107,9 @@ function HistoryItem({ entry, index, colors, t }: HistoryItemProps) {
         <Text style={[styles.sideLabel, { color: colors.textTertiary }]}>
           {t("history.ai")}
         </Text>
-        {entry.type === "round" && entry.directionRound ? (
+        {entry.type === "round" && entry.isDirectionRound ? (
           <FontAwesome5
-            name={DIRECTION_ICONS[entry.directionRound.aiDirection]}
+            name={DIRECTION_ICONS[entry.aiDirection]}
             size={28}
             color={colors.text}
           />
@@ -162,11 +162,11 @@ function HistoryItem({ entry, index, colors, t }: HistoryItemProps) {
               {"—"}
             </Text>
           )
-        ) : entry.type === "round" && entry.directionRound ? (
+        ) : entry.type === "round" && entry.isDirectionRound ? (
           <FontAwesome5
-            name={DIRECTION_ICONS[entry.directionRound.playerDirection]}
+            name={DIRECTION_ICONS[entry.playerDirection]}
             size={28}
-            color={entry.directionRound.matched ? colors.exercise : colors.warning}
+            color={entry.aiDirection === entry.playerDirection ? colors.exercise : colors.warning}
           />
         ) : (
           <FontAwesome5

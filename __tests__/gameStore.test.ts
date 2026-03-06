@@ -1336,7 +1336,7 @@ describe("useGameStore countdownDirections mode", () => {
     expect(mdCdState()).toBe(1);
     // History should include the completed direction round entry
     const history = useGameStore.getState().roundHistory;
-    expect(history.some((e) => e.type === "round" && e.directionRound !== undefined)).toBe(true);
+    expect(history.some((e) => e.type === "round" && e.isDirectionRound === true)).toBe(true);
   });
 
   it("cS=2 result grace: press before grace window ends game with too_early", () => {

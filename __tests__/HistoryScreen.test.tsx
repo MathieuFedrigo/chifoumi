@@ -23,6 +23,7 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "scissors",
         aiChoice: "rock",
         playerChoice: "paper",
@@ -40,6 +41,7 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "scissors",
         aiChoice: "rock",
         playerChoice: "paper",
@@ -47,6 +49,7 @@ describe("HistoryScreen", () => {
       },
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "scissors",
         aiChoice: "scissors",
         playerChoice: "rock",
@@ -107,13 +110,11 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: true,
         choosePhase: "scissors",
         roundResult: "win",
-        directionRound: {
-          aiDirection: "up",
-          playerDirection: "up",
-          matched: true,
-        },
+        aiDirection: "up",
+        playerDirection: "up",
       },
     ]);
     renderHistory();
@@ -124,13 +125,11 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: true,
         choosePhase: "scissors",
         roundResult: "win",
-        directionRound: {
-          aiDirection: "up",
-          playerDirection: "down",
-          matched: false,
-        },
+        aiDirection: "up",
+        playerDirection: "down",
       },
     ]);
     renderHistory();
@@ -141,6 +140,7 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "rock",
         aiChoice: "paper",
         playerChoice: "scissors",
@@ -148,6 +148,7 @@ describe("HistoryScreen", () => {
       },
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "paper",
         aiChoice: "rock",
         playerChoice: "scissors",
@@ -155,6 +156,7 @@ describe("HistoryScreen", () => {
       },
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "scissors",
         aiChoice: "rock",
         playerChoice: "paper",
@@ -201,6 +203,7 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "scissors",
         aiChoice: "rock",
         playerChoice: "paper",
@@ -224,6 +227,7 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "scissors",
         aiChoice: "rock",
         playerChoice: "scissors",
@@ -238,6 +242,7 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "scissors",
         aiChoice: "rock",
         playerChoice: "rock",
@@ -252,6 +257,7 @@ describe("HistoryScreen", () => {
     setHistory([
       {
         type: "round",
+        isDirectionRound: false,
         choosePhase: "scissors",
         aiChoice: "rock",
         playerChoice: "paper",
