@@ -5,13 +5,14 @@ import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { useTheme } from "@/hooks/useTheme";
-import { useGameStore, useGameStoreActions, getChoosePhase, getGracePhase } from "@/store/gameStore";
+import { useGameStore, useGameStoreActions } from "@/store/gameStore";
 import { useAppStore } from "@/store/appStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import { useGameLoop } from "@/hooks/useGameLoop";
 import type { Choice, Direction, GameMode, RoundResult } from "@/store/gameStore";
 import type { Theme } from "@/constants/theme";
 import type { ComponentProps } from "react";
+import { getChoosePhase, getGracePhase } from "@/store/helpers/getNext";
 
 type IconName = ComponentProps<typeof FontAwesome5>["name"];
 
@@ -53,7 +54,6 @@ export default function GameScreen() {
   const gameMode = modeData.gameMode;
   const isDirectionRound = (modeData.gameMode === "directions" || modeData.gameMode === "countdownDirections") && modeData.isDirectionRound;
   const directionAttemptsLeft = (modeData.gameMode === "directions" || modeData.gameMode === "countdownDirections") ? modeData.directionAttemptsLeft : 2;
-  const countdownState = (modeData.gameMode === "countdown" || modeData.gameMode === "countdownDirections") ? modeData.countdownState : null;
   const choosePhase = getChoosePhase(modeData);
   const gracePhase = getGracePhase(modeData);
   let playerChoice: Choice | null = null;

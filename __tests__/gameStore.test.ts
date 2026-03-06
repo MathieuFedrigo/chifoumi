@@ -1,6 +1,7 @@
-import { determineResult, getRandomChoice, getRandomDirection, useGameStore } from "@/store/gameStore";
+import { determineResult, useGameStore } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import type { Choice, CountdownState, Direction, GameMode, ModeData } from "@/store/gameStore";
+import { getRandomChoice, getRandomDirection } from "@/store/helpers/getRandom";
 
 describe("determineResult", () => {
   it("returns draw for same choices", () => {

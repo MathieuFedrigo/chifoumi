@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useGameStore, useGameStoreActions, getChoosePhase } from "@/store/gameStore";
+import { useGameStore, useGameStoreActions } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
+import { getChoosePhase } from "@/store/helpers/getNext";
 
 export const useGameLoop = () => {
   const isPlaying = useGameStore((s) => s.isPlaying);
