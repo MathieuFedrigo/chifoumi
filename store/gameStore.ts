@@ -80,10 +80,8 @@ export type HistoryEntry = {
   type: "mistake";
   choosePhase: GamePhase;
   mistakeReason: MistakeReason;
-  aiChoice: Choice;
-  playerChoice: Choice | null;
-  playerDirection?: Direction | null;
-  aiDirection?: Direction | null;
+  aiInput: Choice | Direction;
+  playerInput: Choice | Direction | null;
 };
 
 const COUNTDOWN_CHOOSE_PHASE: Record<CountdownState, GamePhase> = { 3: "scissors", 2: "paper", 1: "rock" };
@@ -197,7 +195,7 @@ const isDirectionPhase = (m: ModeData): m is DirectionsDirectionPhase | Countdow
   "isDirectionRound" in m && m.isDirectionRound === true;
 
 // Narrows to Direction (vs Choice); replaces the inline (DIRECTIONS as readonly string[]) cast in makeInput
-const isDirectionInput = (input: Choice | Direction): input is Direction =>
+export const isDirectionInput = (input: Choice | Direction): input is Direction =>
   input === "up" || input === "down" || input === "left" || input === "right";
 
 const buildRpsInputData = ({
@@ -298,10 +296,8 @@ const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason, inp
       type: "mistake",
       choosePhase,
       mistakeReason: reason,
-      aiChoice: getRandomChoice(),
-      playerChoice: input && !isDirectionInput(input) ? input : null,
-      playerDirection: input && isDirectionInput(input) ? input : modeData.playerInput,
-      aiDirection: modeData.aiInput ?? getRandomDirection(),
+      aiInput: modeData.aiInput ?? getRandomDirection(),
+      playerInput: input ?? modeData.playerInput ?? null,
     };
   }
 
@@ -309,9 +305,8 @@ const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason, inp
     type: "mistake",
     choosePhase,
     mistakeReason: reason,
-    aiChoice: modeData.aiInput ?? getRandomChoice(),
-    playerChoice: input && !isDirectionInput(input) ? input : (modeData.playerInput ?? null),
-    playerDirection: input && isDirectionInput(input) ? input : undefined,
+    aiInput: modeData.aiInput ?? getRandomChoice(),
+    playerInput: input ?? modeData.playerInput ?? null,
   };
 };
 

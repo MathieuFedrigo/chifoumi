@@ -64,8 +64,8 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "too_early",
-        aiChoice: "rock",
-        playerChoice: "scissors",
+        aiInput: "rock",
+        playerInput: "scissors",
       },
     ]);
     renderHistory();
@@ -79,8 +79,8 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "too_late",
-        aiChoice: "rock",
-        playerChoice: null,
+        aiInput: "rock",
+        playerInput: null,
       },
     ]);
     renderHistory();
@@ -94,8 +94,8 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "wrong_type",
-        aiChoice: "rock",
-        playerChoice: "paper",
+        aiInput: "rock",
+        playerInput: "paper",
       },
     ]);
     renderHistory();
@@ -177,10 +177,8 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "wrong_type",
-        aiChoice: "rock",
-        playerChoice: null,
-        playerDirection: "up",
-        aiDirection: "down",
+        aiInput: "down",
+        playerInput: "up",
       },
     ]);
     renderHistory();
@@ -194,29 +192,12 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "too_early",
-        aiChoice: "rock",
-        playerChoice: null,
-        aiDirection: "left",
+        aiInput: "left",
+        playerInput: null,
       },
     ]);
     renderHistory();
     expect(screen.getByText("Too early!")).toBeTruthy();
-    expect(screen.getByText("AI")).toBeTruthy();
-  });
-
-  it("renders mistake in direction phase with aiDirection null — falls back to RPS icon", () => {
-    setHistory([
-      {
-        type: "mistake",
-        choosePhase: "scissors",
-        mistakeReason: "too_late",
-        aiChoice: "scissors",
-        playerChoice: null,
-        aiDirection: null,
-      },
-    ]);
-    renderHistory();
-    expect(screen.getByText("Too late!")).toBeTruthy();
     expect(screen.getByText("AI")).toBeTruthy();
   });
 
@@ -233,8 +214,8 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "too_late",
-        aiChoice: "scissors",
-        playerChoice: null,
+        aiInput: "scissors",
+        playerInput: null,
       },
     ]);
     renderHistory();
@@ -293,8 +274,8 @@ describe("HistoryScreen", () => {
         type: "mistake",
         choosePhase: "scissors",
         mistakeReason: "too_late",
-        aiChoice: "paper",
-        playerChoice: null,
+        aiInput: "paper",
+        playerInput: null,
       },
     ]);
     renderHistory();

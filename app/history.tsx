@@ -3,7 +3,7 @@ import { View, Text, FlatList, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
-import { useGameStore } from "@/store/gameStore";
+import { useGameStore, isDirectionInput } from "@/store/gameStore";
 import type { HistoryEntry, Choice, Direction, GamePhase } from "@/store/gameStore";
 import type { ComponentProps } from "react";
 import type { Theme } from "@/constants/theme";
@@ -113,12 +113,20 @@ function HistoryItem({ entry, index, colors, t }: HistoryItemProps) {
             size={28}
             color={colors.text}
           />
-        ) : entry.type === "mistake" && entry.aiDirection ? (
-          <FontAwesome5
-            name={DIRECTION_ICONS[entry.aiDirection]}
-            size={28}
-            color={colors.text}
-          />
+        ) : entry.type === "mistake" ? (
+          isDirectionInput(entry.aiInput) ? (
+            <FontAwesome5
+              name={DIRECTION_ICONS[entry.aiInput]}
+              size={28}
+              color={colors.text}
+            />
+          ) : (
+            <FontAwesome5
+              name={CHOICE_ICONS[entry.aiInput]}
+              size={28}
+              color={colors.text}
+            />
+          )
         ) : (
           <FontAwesome5
             name={CHOICE_ICONS[entry.aiChoice]}
@@ -135,18 +143,20 @@ function HistoryItem({ entry, index, colors, t }: HistoryItemProps) {
       {/* Player display */}
       <View style={styles.iconSection}>
         {isMistake ? (
-          entry.playerDirection ? (
-            <FontAwesome5
-              name={DIRECTION_ICONS[entry.playerDirection]}
-              size={28}
-              color={colors.warning}
-            />
-          ) : entry.playerChoice ? (
-            <FontAwesome5
-              name={CHOICE_ICONS[entry.playerChoice]}
-              size={28}
-              color={colors.warning}
-            />
+          entry.playerInput !== null ? (
+            isDirectionInput(entry.playerInput) ? (
+              <FontAwesome5
+                name={DIRECTION_ICONS[entry.playerInput]}
+                size={28}
+                color={colors.warning}
+              />
+            ) : (
+              <FontAwesome5
+                name={CHOICE_ICONS[entry.playerInput]}
+                size={28}
+                color={colors.warning}
+              />
+            )
           ) : (
             <Text style={[styles.mistakeEmpty, { color: colors.textTertiary }]}>
               {"—"}
