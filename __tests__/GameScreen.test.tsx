@@ -1272,7 +1272,7 @@ describe("GameScreen – Interactive result phase", () => {
     expect(screen.getByLabelText("Up")).toBeTruthy();
   });
 
-  it("pressing direction during result in directions mode ends game with wrong_type", async () => {
+  it("pressing direction during result in directions mode ends game with too_early (not wrong_type)", async () => {
     jest.spyOn(Math, "random").mockReturnValue(0);
     const user = userEvent.setup();
     renderDirectionsApp();
@@ -1283,10 +1283,10 @@ describe("GameScreen – Interactive result phase", () => {
     const { beatInterval } = getRoundTimings(0);
     act(() => { jest.advanceTimersByTime(beatInterval); }); // scissors → result
 
-    // Press direction during result → early wrong_type (direction input in RPS round)
+    // Press direction during result → too_early (non-countdown mode, nextChoosePhase !== "rock")
     await user.press(screen.getByLabelText("Up"));
 
     expect(screen.getByText("Game Over")).toBeTruthy();
-    expect(screen.getByText("Wrong button!")).toBeTruthy();
+    expect(screen.getByText("Too early!")).toBeTruthy();
   });
 });

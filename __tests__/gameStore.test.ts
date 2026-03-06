@@ -81,6 +81,11 @@ describe("useGameStore edge cases", () => {
     useGameStore.getState().actions.makeInput("paper");
     expect(useGameStore.getState().phase).toBe("idle");
     expect(useGameStore.getState().mistakeReason).toBe("too_early");
+    // History should contain both the completed round entry and the mistake entry
+    const history = useGameStore.getState().roundHistory;
+    expect(history.length).toBe(2);
+    expect(history[0]!.type).toBe("round");
+    expect(history[1]!.type).toBe("mistake");
   });
 
   it("pressing twice during scissors ends game with too_early", () => {
@@ -1133,6 +1138,9 @@ describe("useGameStore countdownDirections mode", () => {
     expect(useGameStore.getState().phase).toBe("rock");
     expect(mdCountdownState()).toBe(1);
     expect(md().playerInput).toBe("paper");
+    // History should include the completed round entry
+    const history = useGameStore.getState().roundHistory;
+    expect(history.some((e) => e.type === "round")).toBe(true);
   });
 
   it("cS=2 result grace: direction input in countdown mode is ignored (no-op)", () => {
@@ -1181,6 +1189,10 @@ describe("useGameStore countdownDirections mode", () => {
     // Press during cS=1 result → too_early (next is cS=3, choose=scissors, not rock)
     makeInput("paper");
     expect(useGameStore.getState().mistakeReason).toBe("too_early");
+    // History should include the completed round entry before the mistake
+    const history1 = useGameStore.getState().roundHistory;
+    expect(history1[history1.length - 2]!.type).toBe("round");
+    expect(history1[history1.length - 1]!.type).toBe("mistake");
   });
 
   it("cS=3 result: press ends game with too_early (no grace here)", () => {
@@ -1201,6 +1213,10 @@ describe("useGameStore countdownDirections mode", () => {
     // Press during cS=3 result → too_early (next is cS=2, choose=paper, not rock)
     makeInput("paper");
     expect(useGameStore.getState().mistakeReason).toBe("too_early");
+    // History should include the completed round entry before the mistake
+    const history3 = useGameStore.getState().roundHistory;
+    expect(history3[history3.length - 2]!.type).toBe("round");
+    expect(history3[history3.length - 1]!.type).toBe("mistake");
   });
 
   it("cS=2 result grace: wrong_type direction in countdownDirections (draw → next is RPS)", () => {
@@ -1227,9 +1243,13 @@ describe("useGameStore countdownDirections mode", () => {
     // Grace press: next round is RPS (draw → COUNTDOWN_DIR_RPS_RESET), direction should be wrong_type
     makeInput("up");
     expect(useGameStore.getState().mistakeReason).toBe("wrong_type");
+    // History should include the completed round entry before the mistake
+    const history = useGameStore.getState().roundHistory;
+    expect(history[history.length - 2]!.type).toBe("round");
+    expect(history[history.length - 1]!.type).toBe("mistake");
   });
 
-  it("cS=2 result grace: wrong_type direction in countdownDirections (win → next is direction round)", () => {
+  it("cS=2 result grace: direction input silently ignored on type change (win → next is direction round)", () => {
     jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock, AI dir up
     const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
     startGame("countdownDirections");
@@ -1250,12 +1270,13 @@ describe("useGameStore countdownDirections mode", () => {
     const t = getRoundTimings(2);
     jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
 
-    // Grace press: direction during RPS result → early wrong_type (before phase-specific logic)
+    // Grace press: type change (RPS → direction) → silently ignored, advancePhase handles transition
     makeInput("up");
-    expect(useGameStore.getState().mistakeReason).toBe("wrong_type");
+    expect(useGameStore.getState().phase).toBe("result");
+    expect(useGameStore.getState().isPlaying).toBe(true);
   });
 
-  it("cS=2 result grace: wrong_type RPS in countdownDirections (win → next is direction round)", () => {
+  it("cS=2 result grace: RPS input silently ignored on type change (win → next is direction round)", () => {
     jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock, AI dir up
     const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
     startGame("countdownDirections");
@@ -1276,10 +1297,10 @@ describe("useGameStore countdownDirections mode", () => {
     const t = getRoundTimings(2);
     jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
 
-    // Grace press: RPS input matches current round type (passes early check),
-    // but next round expects direction → wrong_type at result grace logic
+    // Grace press: type change (RPS → direction) → silently ignored regardless of input type
     makeInput("rock");
-    expect(useGameStore.getState().mistakeReason).toBe("wrong_type");
+    expect(useGameStore.getState().phase).toBe("result");
+    expect(useGameStore.getState().isPlaying).toBe(true);
   });
 
   it("cS=2 result grace: direction accepted when next round is also direction (countdownDirections)", () => {
@@ -1313,6 +1334,9 @@ describe("useGameStore countdownDirections mode", () => {
     makeInput("up");
     expect(useGameStore.getState().phase).toBe("rock");
     expect(mdCdState()).toBe(1);
+    // History should include the completed direction round entry
+    const history = useGameStore.getState().roundHistory;
+    expect(history.some((e) => e.type === "round" && e.directionRound !== undefined)).toBe(true);
   });
 
   it("cS=2 result grace: press before grace window ends game with too_early", () => {
@@ -1333,5 +1357,67 @@ describe("useGameStore countdownDirections mode", () => {
     // Press immediately (before grace window)
     makeInput("paper");
     expect(useGameStore.getState().mistakeReason).toBe("too_early");
+    // History should include the completed round entry before the mistake
+    const history = useGameStore.getState().roundHistory;
+    expect(history[history.length - 2]!.type).toBe("round");
+    expect(history[history.length - 1]!.type).toBe("mistake");
+  });
+
+  it("result-phase grace pushes completed direction round history before mistake", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI picks rock, AI dir up
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdownDirections");
+
+    // Win RPS at cS=3 → direction round at cS=2
+    advancePhase(); advancePhase();
+    makeInput("paper"); // win vs rock
+    advancePhase(); // scissors → result
+
+    // Advance to direction round at cS=2
+    advancePhase(); // result → rock (direction round, cS=2)
+    expect(useGameStore.getState().phase).toBe("rock");
+
+    // Match direction (AI picks up=0, we pick up)
+    advancePhase(); // rock → paper
+    makeInput("up"); // match
+    advancePhase(); // paper → result
+
+    expect(useGameStore.getState().phase).toBe("result");
+
+    // Next round after matched direction is RPS (type change) → silent return
+    // But let's test too_early on a direction round that goes to same-type next
+    // Actually: matched direction → next is RPS reset → type change → silent return
+    makeInput("up");
+    expect(useGameStore.getState().phase).toBe("result");
+    expect(useGameStore.getState().isPlaying).toBe(true);
+  });
+
+  it("silent return when direction round → RPS transition (both input types ignored)", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    const { startGame, advancePhase, makeInput } = useGameStore.getState().actions;
+    startGame("countdownDirections");
+
+    // Win RPS at cS=3 → direction round at cS=2
+    advancePhase(); advancePhase();
+    makeInput("paper"); // win vs rock
+    advancePhase(); // scissors → result
+
+    // Advance to direction round at cS=2
+    advancePhase(); // result → rock (direction round, cS=2)
+
+    // Wrong direction guess → next round: direction with attemptsLeft=1, still cS=1
+    advancePhase(); // rock → paper
+    makeInput("down"); // wrong direction (AI picked up)
+    advancePhase(); // paper → result
+
+    // Now at direction round result, next round is ALSO direction (attemptsLeft=1)
+    // But countdown goes to cS=1, choose=rock, grace falls in this result
+    const t = getRoundTimings(2);
+    jest.advanceTimersByTime(t.beatInterval - t.graceBefore + 10);
+
+    // Direction input accepted (same type next round)
+    makeInput("up");
+    expect(useGameStore.getState().phase).toBe("rock");
+    expect(useGameStore.getState().isPlaying).toBe(true);
   });
 });

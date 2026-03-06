@@ -353,21 +353,46 @@ export const useGameStore = create<GameState>()((set, get) => ({
       const choosePhase = getChoosePhase(modeData);
       const gracePhase = getGracePhase(modeData);
 
+      if (phase === "result") {
+        const currentEntry = isDirectionPhase(modeData)
+          ? buildDirectionHistoryEntry(modeData)
+          : buildRoundHistoryEntry(modeData);
+
+        const nextModeData = getNextRoundModeData(modeData);
+        const nextChoosePhase = getChoosePhase(nextModeData);
+
+        if (nextChoosePhase !== "rock") {
+          set({ roundHistory: [...get().roundHistory, currentEntry] });
+          return endGame("too_early", input);
+        }
+
+        // Type change (direction ↔ RPS): ignore input, advancePhase handles transition
+        if (isDirectionPhase(modeData) !== isDirectionPhase(nextModeData)) return;
+
+        if (!isGracePeriodActive({ phaseStartedAt, score })) {
+          set({ roundHistory: [...get().roundHistory, currentEntry] });
+          return endGame("too_early", input);
+        }
+
+        if (isDir !== isDirectionPhase(nextModeData)) {
+          set({ roundHistory: [...get().roundHistory, currentEntry] });
+          return endGame("wrong_type", input);
+        }
+
+        return set({
+          modeData: buildInputModeData(nextModeData, input),
+          phase: nextChoosePhase,
+          phaseStartedAt: Date.now(),
+          roundHistory: [...get().roundHistory, currentEntry],
+        });
+      }
+
       if (isDir !== isDirectionPhase(modeData)) return endGame("wrong_type", input);
 
       if (phase === choosePhase) return set({ modeData: buildInputModeData(modeData, input) });
       if (phase === gracePhase) {
         if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early", input);
         return set({ modeData: buildInputModeData(modeData, input), phase: choosePhase, phaseStartedAt: Date.now() });
-      }
-      if (phase === "result") {
-        // Check if the NEXT round's choose phase is "rock" (grace falls in this result)
-        const nextModeData = getNextRoundModeData(modeData);
-        const nextChoosePhase = getChoosePhase(nextModeData);
-        if (nextChoosePhase !== "rock") return endGame("too_early", input);
-        if (!isGracePeriodActive({ phaseStartedAt, score })) return endGame("too_early", input);
-        if (isDir !== isDirectionPhase(nextModeData)) return endGame("wrong_type", input);
-        return set({ modeData: buildInputModeData(nextModeData, input), phase: nextChoosePhase, phaseStartedAt: Date.now() });
       }
 
       return endGame("too_early", input);
