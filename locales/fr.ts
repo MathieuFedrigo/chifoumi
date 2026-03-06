@@ -11,10 +11,12 @@ export default {
     directionsMode: "Directions",
     countdownMode: "3-2-1",
     countdownDirectionsMode: "3-2-1 Directions",
+    bestScore: "Meilleur : {{count}}",
   },
   game: {
     title: "Chifoumi",
     score: "Score : {{count}}",
+    bestScore: "Meilleur : {{count}}",
     start: "Commencer",
     rock: "Pierre !",
     paper: "Papier !",

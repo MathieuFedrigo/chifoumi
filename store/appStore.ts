@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { zustandStorage } from "./storage";
+import type { GameMode } from "@/store/gameStore";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type LocaleMode = "system" | "en" | "fr";
@@ -10,12 +11,14 @@ interface AppActions {
   setThemeMode: (mode: ThemeMode) => void;
   setLocaleMode: (mode: LocaleMode) => void;
   setAiGuessEnabled: (enabled: boolean) => void;
+  updateHighScore: (mode: GameMode, score: number) => void;
 }
 
 interface AppState {
   themeMode: ThemeMode;
   localeMode: LocaleMode;
   aiGuessEnabled: boolean;
+  highScores: Record<GameMode, number>;
   actions: AppActions;
 }
 
@@ -27,6 +30,7 @@ export const useAppStore = create<AppState>()(
       themeMode: "system",
       localeMode: "system",
       aiGuessEnabled: false,
+      highScores: { classic: 0, directions: 0, countdown: 0, countdownDirections: 0 },
 
       actions: {
         cycleThemeMode: () => {
@@ -39,6 +43,12 @@ export const useAppStore = create<AppState>()(
         setThemeMode: (mode) => set({ themeMode: mode }),
         setLocaleMode: (mode) => set({ localeMode: mode }),
         setAiGuessEnabled: (enabled) => set({ aiGuessEnabled: enabled }),
+
+        updateHighScore: (mode, score) => {
+          if (score > get().highScores[mode]) {
+            set((state) => ({ highScores: { ...state.highScores, [mode]: score } }));
+          }
+        },
       },
     }),
     {
@@ -48,6 +58,7 @@ export const useAppStore = create<AppState>()(
         themeMode: state.themeMode,
         localeMode: state.localeMode,
         aiGuessEnabled: state.aiGuessEnabled,
+        highScores: state.highScores,
       }),
     }
   )

@@ -48,6 +48,7 @@ export default function GameScreen() {
   const aiGuess = useGameStore((s) => s.aiGuess);
   const aiGuessRevealed = useGameStore((s) => s.aiGuessRevealed);
   const aiGuessEnabled = useAppStore((s) => s.aiGuessEnabled);
+  const highScore = useAppStore((s) => s.highScores[urlMode]);
   const { startGame, makeInput } = useGameStoreActions();
 
   // Narrow modeData into aliased variables matching the rest of the component
@@ -177,6 +178,9 @@ export default function GameScreen() {
           <Text style={[styles.score, { color: theme.colors.text }]}>
             {t("game.score", { count: score })}
           </Text>
+          <Text style={[styles.bestScore, { color: theme.colors.textSecondary }]}>
+            {t("game.bestScore", { count: highScore })}
+          </Text>
         </View>
         <View style={styles.topBarSpacer} />
       </View>
@@ -280,6 +284,9 @@ export default function GameScreen() {
             <Text style={[styles.finalScore, { color: theme.colors.text }]}>
               {t("game.finalScore", { count: score })}
             </Text>
+            <Text style={[styles.bestScore, { color: theme.colors.textSecondary }]}>
+              {t("game.bestScore", { count: highScore })}
+            </Text>
             <Pressable
               style={[styles.actionButton, { backgroundColor: theme.colors.button }]}
               onPress={() => startGame(urlMode)}
@@ -346,9 +353,13 @@ const styles = StyleSheet.create({
     width: 20,
   },
   scoreRow: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
-    gap: 8,
+    gap: 2,
+  },
+  bestScore: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   score: {
     fontSize: 24,

@@ -408,12 +408,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
     },
 
     endGame: (reason: MistakeReason, input?: Choice | Direction) => {
-      const { modeData, roundHistory } = get();
+      const { modeData, roundHistory, score } = get();
       Sentry.addBreadcrumb({
         category: "game",
         message: `Game ended: ${reason}`,
         level: "info",
-        data: { score: get().score, reason },
+        data: { score, reason },
       });
       const mistakeEntry = buildMistakeHistoryEntry(modeData, reason, input);
       set({
@@ -423,6 +423,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         phaseStartedAt: Date.now(),
         roundHistory: [...roundHistory, mistakeEntry],
       });
+      useAppStore.getState().actions.updateHighScore(modeData.gameMode, score);
     },
   },
 }));

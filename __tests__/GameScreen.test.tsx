@@ -1615,4 +1615,57 @@ describe("GameScreen – AI Guess", () => {
     await user.press(screen.getByLabelText("Paper!"));
     expect(screen.getByText("You Win!")).toBeTruthy();
   });
+
+  it("shows best score of 0 in top bar on game start", () => {
+    renderApp();
+
+    expect(screen.getByText("Best: 0")).toBeTruthy();
+  });
+
+  it("shows best score in game-over screen", () => {
+    renderApp();
+
+    advanceToTimeout();
+
+    expect(screen.getAllByText("Best: 0").length).toBeGreaterThan(0);
+  });
+
+  it("updates best score after winning a round then losing", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI always picks rock
+
+    const user = userEvent.setup();
+    renderApp();
+
+    // Win one round (score becomes 1)
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+
+    // Timeout on next round → game over with score 1
+    advanceToTimeout(1);
+
+    expect(screen.getByText("Final Score: 1")).toBeTruthy();
+    expect(screen.getAllByText("Best: 1").length).toBeGreaterThan(0);
+  });
+
+  it("does not decrease best score on a worse subsequent game", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+
+    const user = userEvent.setup();
+    renderApp();
+
+    // First game: win a round, die → best = 1
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+    advanceToTimeout(1);
+    expect(screen.getByText("Final Score: 1")).toBeTruthy();
+
+    // Restart and die immediately → score 0, best should stay 1
+    await user.press(screen.getByText("Play Again"));
+    advanceToTimeout();
+
+    expect(screen.getByText("Final Score: 0")).toBeTruthy();
+    expect(screen.getAllByText("Best: 1").length).toBeGreaterThan(0);
+  });
 });

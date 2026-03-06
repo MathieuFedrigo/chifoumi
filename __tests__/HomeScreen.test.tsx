@@ -1,7 +1,8 @@
-import { renderRouter, screen, userEvent } from "expo-router/testing-library";
+import { renderRouter, screen, userEvent, act } from "expo-router/testing-library";
 import { Text } from "react-native";
 import HomeScreen from "@/app/index";
 import GameScreen from "@/app/game";
+import { getRoundTimings } from "@/lib/rhythmDifficulty";
 
 const useColorSchemeMock = jest.requireMock(
   "react-native/Libraries/Utilities/useColorScheme"
@@ -12,6 +13,31 @@ const renderHome = () =>
     { "index": HomeScreen, "game": GameScreen, "settings": () => <Text>{"Settings"}</Text> },
     { initialUrl: "/" }
   );
+
+const renderFullApp = () =>
+  renderRouter(
+    { "index": HomeScreen, "game": GameScreen, "settings": () => <Text>{"Settings"}</Text>, "history": () => <Text>{"History"}</Text> },
+    { initialUrl: "/" }
+  );
+
+const advanceToScissors = (round = 0) => {
+  const { beatInterval } = getRoundTimings(round);
+  act(() => { jest.advanceTimersByTime(beatInterval); });
+  act(() => { jest.advanceTimersByTime(beatInterval); });
+};
+
+const advanceResultToRock = (round = 0) => {
+  const { beatInterval } = getRoundTimings(round);
+  act(() => { jest.advanceTimersByTime(beatInterval); });
+  act(() => { jest.advanceTimersByTime(beatInterval); });
+};
+
+const advanceToTimeout = (round = 0) => {
+  const { beatInterval, graceAfter } = getRoundTimings(round);
+  act(() => { jest.advanceTimersByTime(beatInterval); });
+  act(() => { jest.advanceTimersByTime(beatInterval); });
+  act(() => { jest.advanceTimersByTime(graceAfter); });
+};
 
 describe("HomeScreen", () => {
   it("renders app title", () => {
@@ -100,5 +126,30 @@ describe("HomeScreen", () => {
     renderHome();
 
     expect(screen.getByText("Chifoumi")).toBeTruthy();
+  });
+
+  it("does not show best score on mode cards when score is 0", () => {
+    renderHome();
+
+    expect(screen.queryByText(/Best:/)).toBeNull();
+  });
+
+  it("shows best score on Classic card after game is played", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0); // AI always picks rock
+
+    const user = userEvent.setup();
+    renderFullApp();
+
+    // Navigate to game and win one round (score 1), then timeout
+    await user.press(screen.getByText("Classic"));
+    advanceToScissors();
+    await user.press(screen.getByLabelText("Paper!"));
+    advanceResultToRock();
+    advanceToTimeout(1);
+
+    // Navigate back home
+    await user.press(screen.getByLabelText("Home"));
+
+    expect(screen.getByText("Best: 1")).toBeTruthy();
   });
 });

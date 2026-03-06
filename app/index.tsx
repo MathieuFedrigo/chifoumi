@@ -3,17 +3,20 @@ import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
+import { useAppStore } from "@/store/appStore";
+import type { GameMode } from "@/store/gameStore";
 
-const GAME_MODES = [
+const GAME_MODES: { key: GameMode; labelKey: string; route: string }[] = [
   { key: "classic", labelKey: "home.classicMode", route: "/game" },
   { key: "directions", labelKey: "home.directionsMode", route: "/game?mode=directions" },
   { key: "countdown", labelKey: "home.countdownMode", route: "/game?mode=countdown" },
   { key: "countdownDirections", labelKey: "home.countdownDirectionsMode", route: "/game?mode=countdownDirections" },
-] as const;
+];
 
 export default function HomeScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
+  const highScores = useAppStore((s) => s.highScores);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -48,6 +51,11 @@ export default function HomeScreen() {
             <Text style={[styles.modeText, { color: theme.colors.text }]}>
               {t(item.labelKey)}
             </Text>
+            {highScores[item.key] > 0 && (
+              <Text style={[styles.bestScoreText, { color: theme.colors.textSecondary }]}>
+                {t("home.bestScore", { count: highScores[item.key] })}
+              </Text>
+            )}
           </Pressable>
         )}
       />
@@ -85,5 +93,10 @@ const styles = StyleSheet.create({
   modeText: {
     fontSize: 28,
     fontWeight: "700",
+  },
+  bestScoreText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginTop: 4,
   },
 });

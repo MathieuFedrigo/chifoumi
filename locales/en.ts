@@ -5,10 +5,12 @@ const en = {
     directionsMode: "Directions",
     countdownMode: "3-2-1",
     countdownDirectionsMode: "3-2-1 Directions",
+    bestScore: "Best: {{count}}",
   },
   game: {
     title: "Chifoumi",
     score: "Score: {{count}}",
+    bestScore: "Best: {{count}}",
     start: "Start",
     rock: "Rock!",
     paper: "Paper!",
