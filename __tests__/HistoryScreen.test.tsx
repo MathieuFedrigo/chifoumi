@@ -108,8 +108,6 @@ describe("HistoryScreen", () => {
       {
         type: "round",
         choosePhase: "scissors",
-        aiChoice: "rock",
-        playerChoice: "rock",
         roundResult: "win",
         directionRound: {
           aiDirection: "up",
@@ -127,8 +125,6 @@ describe("HistoryScreen", () => {
       {
         type: "round",
         choosePhase: "scissors",
-        aiChoice: "rock",
-        playerChoice: "rock",
         roundResult: "win",
         directionRound: {
           aiDirection: "up",

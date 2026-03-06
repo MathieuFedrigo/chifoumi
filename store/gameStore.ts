@@ -71,11 +71,14 @@ export type HistoryEntry = {
   aiChoice: Choice;
   playerChoice: Choice;
   roundResult: RoundResult;
-  directionRound?: {
-    aiDirection: Direction;
-    playerDirection: Direction;
-    matched: boolean;
-  };
+  directionRound?: never;
+} | {
+  type: "round";
+  choosePhase: GamePhase;
+  roundResult: RoundResult;
+  aiChoice?: never;
+  playerChoice?: never;
+  directionRound: { aiDirection: Direction; playerDirection: Direction; matched: boolean };
 } | {
   type: "mistake";
   choosePhase: GamePhase;
@@ -276,8 +279,6 @@ const buildDirectionHistoryEntry = (modeData: DirectionsDirectionPhase | Countdo
   return {
     type: "round",
     choosePhase,
-    aiChoice: "rock", // placeholder — direction rounds don't have RPS choices
-    playerChoice: "rock",
     roundResult: modeData.pendingRpsResult,
     directionRound: {
       aiDirection: modeData.aiInput!,
