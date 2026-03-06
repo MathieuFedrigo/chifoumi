@@ -675,12 +675,11 @@ const renderCountdownApp = () => {
 };
 
 describe("GameScreen – Countdown mode", () => {
-  it("renders with countdown mode and shows countdown indicator", () => {
+  it("renders with countdown mode", () => {
     renderCountdownApp();
 
     expect(screen.getByText("Rock!")).toBeTruthy();
     expect(screen.getByText("Score: 0")).toBeTruthy();
-    expect(screen.getByText("3")).toBeTruthy(); // countdown state indicator
   });
 
   it("state 3: full R-P-S cycle, input on scissors shows result", async () => {
@@ -709,7 +708,6 @@ describe("GameScreen – Countdown mode", () => {
     advanceResultToRock();
 
     // State 2: paper is choose phase
-    expect(screen.getByText("2")).toBeTruthy();
     const { beatInterval } = getRoundTimings(1);
     act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
     expect(screen.getByText("Paper!")).toBeTruthy();
@@ -735,7 +733,6 @@ describe("GameScreen – Countdown mode", () => {
     act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock
 
     // State 1: rock is choose phase
-    expect(screen.getByText("1")).toBeTruthy();
     expect(screen.getByText("Rock!")).toBeTruthy();
 
     await user.press(screen.getByLabelText("Paper!"));
@@ -792,7 +789,6 @@ describe("GameScreen – Countdown mode", () => {
 
     expect(screen.getByText("Rock!")).toBeTruthy();
     expect(screen.getByText("Score: 0")).toBeTruthy();
-    expect(screen.getByText("3")).toBeTruthy();
   });
 
   it("navigates to countdown game from home", async () => {
@@ -804,7 +800,6 @@ describe("GameScreen – Countdown mode", () => {
 
     await user.press(screen.getByText("3-2-1"));
     expect(getPathname()).toBe("/game");
-    expect(screen.getByText("3")).toBeTruthy(); // countdown indicator
   });
 
   it("buttons enabled on choose phase and grace phase in state 3", async () => {
@@ -854,12 +849,11 @@ const advanceToChoosePhase = (countdownState: number, round = 0) => {
 };
 
 describe("GameScreen – CountdownDirections mode", () => {
-  it("renders with countdown indicator and direction buttons", () => {
+  it("renders with direction buttons", () => {
     renderCountdownDirApp();
 
     expect(screen.getByText("Rock!")).toBeTruthy();
     expect(screen.getByText("Score: 0")).toBeTruthy();
-    expect(screen.getByText("3")).toBeTruthy();
     expect(screen.getByLabelText("Up")).toBeTruthy();
     expect(screen.getByLabelText("Down")).toBeTruthy();
     expect(screen.getByLabelText("Left")).toBeTruthy();
@@ -897,7 +891,6 @@ describe("GameScreen – CountdownDirections mode", () => {
     advanceResultToRock();
 
     expect(screen.getByText("Score: 1")).toBeTruthy();
-    expect(screen.getByText("2")).toBeTruthy(); // countdown advanced
     expect(screen.getByText("Rock!")).toBeTruthy();
   });
 
@@ -910,7 +903,6 @@ describe("GameScreen – CountdownDirections mode", () => {
     await user.press(screen.getByLabelText("Paper!")); // win vs rock
     advanceResultToRock();
 
-    expect(screen.getByText("2")).toBeTruthy(); // state advanced
     expect(screen.getByText("Score: 1")).toBeTruthy();
     expect(screen.getByText("Rock!")).toBeTruthy();
   });
@@ -934,7 +926,6 @@ describe("GameScreen – CountdownDirections mode", () => {
     act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // paper → result
     act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock
 
-    expect(screen.getByText("1")).toBeTruthy(); // state 2 → 1
     expect(screen.getByText("Score: 2")).toBeTruthy();
   });
 
@@ -973,13 +964,11 @@ describe("GameScreen – CountdownDirections mode", () => {
     act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // result → rock
 
     // 2nd direction attempt state 1 (rock is choose phase)
-    expect(screen.getByText("1")).toBeTruthy();
     const t2 = getRoundTimings(2);
     await user.press(screen.getByLabelText("Up")); // miss, voided
     act(() => { jest.advanceTimersByTime(t2.beatInterval); }); // rock → result
     act(() => { jest.advanceTimersByTime(t2.beatInterval); }); // result → rock
 
-    expect(screen.getByText("3")).toBeTruthy(); // back to state 3
     expect(screen.getByText("Score: 3")).toBeTruthy();
   });
 
@@ -1042,7 +1031,6 @@ describe("GameScreen – CountdownDirections mode", () => {
 
     expect(screen.getByText("Rock!")).toBeTruthy();
     expect(screen.getByText("Score: 0")).toBeTruthy();
-    expect(screen.getByText("3")).toBeTruthy();
     expect(screen.getByLabelText("Up")).toBeTruthy();
   });
 
@@ -1068,7 +1056,6 @@ describe("GameScreen – CountdownDirections mode", () => {
 
     await user.press(screen.getByText("3-2-1 Directions"));
     expect(getPathname()).toBe("/game");
-    expect(screen.getByText("3")).toBeTruthy();
     expect(screen.getByLabelText("Up")).toBeTruthy();
   });
 
@@ -1156,7 +1143,6 @@ describe("GameScreen – Interactive result phase", () => {
     advanceResultToRock();
 
     // State 2: paper is choose phase
-    expect(screen.getByText("2")).toBeTruthy();
     const t1 = getRoundTimings(1);
     act(() => { jest.advanceTimersByTime(t1.beatInterval); }); // rock → paper
     await user.press(screen.getByLabelText("Paper!")); // win on paper choose

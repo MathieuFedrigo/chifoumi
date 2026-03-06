@@ -177,11 +177,6 @@ export default function GameScreen() {
           <Text style={[styles.score, { color: theme.colors.text }]}>
             {t("game.score", { count: score })}
           </Text>
-          {countdownState !== null && (
-            <Text style={[styles.countdownIndicator, { color: theme.colors.textSecondary }]}>
-              {t("game.countdownState", { count: countdownState })}
-            </Text>
-          )}
         </View>
         <View style={styles.topBarSpacer} />
       </View>
@@ -359,10 +354,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     textAlign: "center",
-  },
-  countdownIndicator: {
-    fontSize: 18,
-    fontWeight: "600",
   },
   center: {
     flex: 1,
