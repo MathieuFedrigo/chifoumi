@@ -13,6 +13,9 @@
       "channel": "preview",
       "env": {
         "APP_VARIANT": "production"
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {

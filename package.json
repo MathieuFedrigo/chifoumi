@@ -18,6 +18,7 @@
     "deploy:web": "eas deploy",
     "deploy:web:prod": "eas deploy --prod",
     "build:ios": "sh -c '. ./.env.local 2>/dev/null; export $(grep -v \"^#\" .env.local | grep -v \"^$\" | cut -d= -f1 | xargs) 2>/dev/null; eas build -p ios --profile production --local'",
+    "build:android": "sh -c '. ./.env.local 2>/dev/null; export $(grep -v \"^#\" .env.local | grep -v \"^$\" | cut -d= -f1 | xargs) 2>/dev/null; eas build -p android --profile preview --local'",
     "submit:ios": "eas submit -p ios --latest"
   },
   "dependencies": {
