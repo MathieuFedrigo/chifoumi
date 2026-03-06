@@ -6,6 +6,7 @@ import type { AiGuess, RoundType } from "@/lib/aiGuess";
 import { useAppStore } from "@/store/appStore";
 import { CLASSIC_RESET, COUNTDOWN_DIR_DIR_RESET, COUNTDOWN_DIR_RPS_RESET, COUNTDOWN_RESET, DIRECTIONS_DIR_RESET, DIRECTIONS_RPS_RESET, GUESS_RESET, MODE_RESET } from "./helpers/RESET_OBJECTS";
 import { getRandomChoice, getRandomDirection } from "./helpers/getRandom";
+import { getChoosePhase, getGracePhase, getNextCountdownState, getNextPhase } from "./helpers/getNext";
 
 export type Choice = "rock" | "paper" | "scissors";
 export type GamePhase = "idle" | "rock" | "paper" | "scissors" | "result";
@@ -91,30 +92,6 @@ export type HistoryEntry = {
   aiInput: Choice | Direction;
   playerInput: Choice | Direction | null;
 };
-
-const COUNTDOWN_CHOOSE_PHASE: Record<CountdownState, GamePhase> = { 3: "scissors", 2: "paper", 1: "rock" };
-const COUNTDOWN_GRACE_PHASE: Record<CountdownState, GamePhase | null> = { 3: "paper", 2: "rock", 1: null };
-
-/** Which phase the player must input on */
-export const getChoosePhase = (modeData: ModeData): GamePhase =>
-  modeData.gameMode === "countdown" || modeData.gameMode === "countdownDirections"
-    ? COUNTDOWN_CHOOSE_PHASE[modeData.countdownState]
-    : "scissors";
-
-/** Which phase has a grace window (one beat before choose), or null */
-export const getGracePhase = (modeData: ModeData): GamePhase | null =>
-  modeData.gameMode === "countdown" || modeData.gameMode === "countdownDirections"
-    ? COUNTDOWN_GRACE_PHASE[modeData.countdownState]
-    : "paper";
-
-/** Next R-P-S phase, or null if already at/past choosePhase */
-const getNextPhase = ({ phase, choosePhase }: { phase: GamePhase; choosePhase: GamePhase }): GamePhase | null => {
-  if (phase === "rock" && choosePhase !== "rock") return "paper";
-  if (phase === "paper" && choosePhase === "scissors") return "scissors";
-  return null;
-};
-
-const NEXT_COUNTDOWN_STATE: Record<CountdownState, CountdownState> = { 3: 2, 2: 1, 1: 3 };
 
 interface GameActions {
   startGame: (mode?: GameMode) => void;
@@ -456,7 +433,7 @@ const getNextRoundModeData = (modeData: ModeData): ModeData => {
     case "classic":
       return CLASSIC_RESET;
     case "countdown":
-      return { ...COUNTDOWN_RESET, countdownState: NEXT_COUNTDOWN_STATE[modeData.countdownState] };
+      return { ...COUNTDOWN_RESET, countdownState: getNextCountdownState(modeData.countdownState) };
     case "directions":
       if (!modeData.isDirectionRound) {
         if (modeData.roundResult === "draw") return DIRECTIONS_RPS_RESET;
@@ -467,7 +444,7 @@ const getNextRoundModeData = (modeData: ModeData): ModeData => {
         return { ...modeData, playerInput: null, aiInput: null, directionAttemptsLeft: modeData.directionAttemptsLeft - 1 };
       return DIRECTIONS_RPS_RESET;
     case "countdownDirections": {
-      const nextCd = NEXT_COUNTDOWN_STATE[modeData.countdownState];
+      const nextCd = getNextCountdownState(modeData.countdownState);
       if (!modeData.isDirectionRound) {
         if (modeData.roundResult === "draw")
           return { ...COUNTDOWN_DIR_RPS_RESET, countdownState: nextCd };
