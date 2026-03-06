@@ -834,20 +834,6 @@ const renderCountdownDirApp = () => {
   );
 };
 
-/** Advance to choose phase for a given countdown state */
-const advanceToChoosePhase = (countdownState: number, round = 0) => {
-  const { beatInterval } = getRoundTimings(round);
-  if (countdownState === 3) {
-    // Choose phase = scissors → need rock + paper
-    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
-    act(() => { jest.advanceTimersByTime(beatInterval); }); // paper → scissors
-  } else if (countdownState === 2) {
-    // Choose phase = paper → need rock
-    act(() => { jest.advanceTimersByTime(beatInterval); }); // rock → paper
-  }
-  // countdownState === 1: choose phase = rock, already there
-};
-
 describe("GameScreen – CountdownDirections mode", () => {
   it("renders with direction buttons", () => {
     renderCountdownDirApp();
