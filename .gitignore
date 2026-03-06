@@ -42,6 +42,8 @@ app-example
 /ios
 /android
 *.ipa
+*.apk
+*.aab
 
 # tests
 coverage/
