@@ -55,6 +55,12 @@ const advanceResultToRock = (round = 0) => {
   });
 };
 
+// Disable AI rules by default so game tests don't accidentally trigger ai_guessed
+beforeEach(() => {
+  const { useAppStore } = require("@/store/appStore");
+  useAppStore.getState().actions.setEnabledAiRules([]);
+});
+
 describe("GameScreen", () => {
   it("auto-starts and shows Rock! immediately on mount", () => {
     renderApp();
@@ -1266,12 +1272,8 @@ describe("GameScreen – Interactive result phase", () => {
 describe("GameScreen – AI Guess", () => {
   beforeEach(() => {
     const { useAppStore } = require("@/store/appStore");
-    useAppStore.getState().actions.setAiGuessEnabled(true);
-  });
-
-  afterEach(() => {
-    const { useAppStore } = require("@/store/appStore");
-    useAppStore.getState().actions.setAiGuessEnabled(false);
+    const { ALL_AI_RULE_IDS } = require("@/lib/aiRuleIds");
+    useAppStore.getState().actions.setEnabledAiRules(ALL_AI_RULE_IDS);
   });
 
   it("ends game with ai_guessed when pressing predicted button", async () => {
@@ -1319,9 +1321,9 @@ describe("GameScreen – AI Guess", () => {
     expect(screen.getByText("Draw!")).toBeTruthy();
   });
 
-  it("does not trigger ai_guessed when feature is disabled", async () => {
+  it("does not trigger ai_guessed when all rules are disabled", async () => {
     const { useAppStore } = require("@/store/appStore");
-    useAppStore.getState().actions.setAiGuessEnabled(false);
+    useAppStore.getState().actions.setEnabledAiRules([]);
 
     jest.spyOn(Math, "random").mockReturnValue(0);
     const user = userEvent.setup();

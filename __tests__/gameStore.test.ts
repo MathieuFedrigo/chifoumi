@@ -2,6 +2,12 @@ import { determineResult, useGameStore } from "@/store/gameStore";
 import { getRoundTimings } from "@/lib/rhythmDifficulty";
 import type { Choice, CountdownState, Direction, GameMode, ModeData } from "@/store/gameStore";
 import { getRandomChoice, getRandomDirection } from "@/store/helpers/getRandom";
+import { useAppStore } from "@/store/appStore";
+
+// Disable AI rules by default so store tests don't accidentally trigger ai_guessed
+beforeEach(() => {
+  useAppStore.getState().actions.setEnabledAiRules([]);
+});
 
 describe("determineResult", () => {
   it("returns draw for same choices", () => {

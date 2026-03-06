@@ -47,7 +47,6 @@ export default function GameScreen() {
   const modeData = useGameStore((s) => s.modeData);
   const aiGuess = useGameStore((s) => s.aiGuess);
   const aiGuessRevealed = useGameStore((s) => s.aiGuessRevealed);
-  const aiGuessEnabled = useAppStore((s) => s.aiGuessEnabled);
   const highScore = useAppStore((s) => s.highScores[urlMode]);
   const { startGame, makeInput } = useGameStoreActions();
 
@@ -156,7 +155,7 @@ export default function GameScreen() {
     isDirectionRound && (phase === "result" || (phase === choosePhase && !!playerDirectionChoice));
 
   const isGameOver = !isPlaying && !!mistakeReason;
-  const showHighlight = aiGuessEnabled && aiGuessRevealed && aiGuess !== null && isPlaying;
+  const showHighlight = aiGuessRevealed && aiGuess !== null && isPlaying;
 
   const attemptsRemaining = directionAttemptsLeft - 1;
 

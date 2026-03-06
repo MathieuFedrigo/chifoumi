@@ -19,11 +19,11 @@ describe("SettingsScreen", () => {
     // System appears in both theme row value and language row value
     expect(screen.getAllByText("System").length).toBe(2);
 
-    // Chevron visible for both dropdowns
-    expect(screen.getAllByText("chevron-down").length).toBe(2);
+    // Chevron visible for theme, language, and AI Rules
+    expect(screen.getAllByText("chevron-down").length).toBe(3);
 
-    // Only AI Guess Off check visible by default (theme/lang checks are inside closed modals)
-    expect(screen.getAllByText("check").length).toBe(1);
+    // No checks visible in default state (all inside closed modals)
+    expect(screen.queryByText("check")).toBeNull();
   });
 
   it("shows language section with compact row and System value by default", () => {
@@ -43,8 +43,8 @@ describe("SettingsScreen", () => {
 
     expect(screen.getByText("Light")).toBeTruthy();
     expect(screen.getByText("Dark")).toBeTruthy();
-    // 2 checks: theme System (in modal) + AI Guess Off
-    expect(screen.getAllByText("check").length).toBe(2);
+    // 1 check: theme System (in modal)
+    expect(screen.getAllByText("check").length).toBe(1);
   });
 
   it("pressing Dark selects dark theme", async () => {
@@ -58,8 +58,8 @@ describe("SettingsScreen", () => {
     expect(screen.getByText("Dark")).toBeTruthy();
     // System only in language row now
     expect(screen.getAllByText("System").length).toBe(1);
-    // Back to 1 check (AI Guess Off only)
-    expect(screen.getAllByText("check").length).toBe(1);
+    // No checks visible outside of modals
+    expect(screen.queryByText("check")).toBeNull();
   });
 
   it("pressing Light selects light theme", async () => {
@@ -81,8 +81,8 @@ describe("SettingsScreen", () => {
 
     expect(screen.getByText("English")).toBeTruthy();
     expect(screen.getByText("Français")).toBeTruthy();
-    // 2 checks: lang System (in modal) + AI Guess Off
-    expect(screen.getAllByText("check").length).toBe(2);
+    // 1 check: lang System (in modal)
+    expect(screen.getAllByText("check").length).toBe(1);
   });
 
   it("pressing English selects en locale", async () => {
@@ -108,56 +108,18 @@ describe("SettingsScreen", () => {
     expect(screen.getAllByText("System").length).toBe(1);
   });
 
-  it("shows AI Guess section with On/Off options, Off selected by default", () => {
+
+  it("shows AI Rules row with 7 / 7 summary by default", () => {
     renderSettings();
-
-    expect(screen.getByText("AI Guess")).toBeTruthy();
-    expect(screen.getByText("On")).toBeTruthy();
-    expect(screen.getByText("Off")).toBeTruthy();
-
-    // Off check visible
-    expect(screen.getAllByText("check").length).toBe(1);
-  });
-
-  it("pressing On enables AI Guess", async () => {
-    const user = userEvent.setup();
-    renderSettings();
-
-    await user.press(screen.getByText("On"));
-
-    // check now on On, not Off
-    expect(screen.getAllByText("check").length).toBe(1);
-  });
-
-  it("pressing Off after On disables AI Guess", async () => {
-    const user = userEvent.setup();
-    renderSettings();
-
-    await user.press(screen.getByText("On"));
-    await user.press(screen.getByText("Off"));
-
-    expect(screen.getAllByText("check").length).toBe(1);
-  });
-
-  it("enabling AI Guess shows AI Rules row with 7 / 7 summary", async () => {
-    const user = userEvent.setup();
-    renderSettings();
-
-    expect(screen.queryByText("AI Rules")).toBeNull();
-
-    await user.press(screen.getByText("On"));
 
     expect(screen.getByText("AI Rules")).toBeTruthy();
     expect(screen.getByText("7 / 7")).toBeTruthy();
-    // 3 chevrons: theme, language, ai rules
-    expect(screen.getAllByText("chevron-down").length).toBe(3);
   });
 
   it("opening AI Rules popover shows all 7 rules with checkmarks", async () => {
     const user = userEvent.setup();
     renderSettings();
 
-    await user.press(screen.getByText("On"));
     await user.press(screen.getByText("AI Rules"));
 
     expect(screen.getByText("Repeat")).toBeTruthy();
@@ -167,27 +129,24 @@ describe("SettingsScreen", () => {
     expect(screen.getByText("After Direction")).toBeTruthy();
     expect(screen.getByText("After RPS")).toBeTruthy();
     expect(screen.getByText("Most Frequent")).toBeTruthy();
-    // 7 rule checks + 1 for AI Guess On
-    expect(screen.getAllByText("check").length).toBe(8);
+    // 7 checks, one per rule
+    expect(screen.getAllByText("check").length).toBe(7);
   });
 
   it("toggling a rule removes its checkmark and toggling again restores it", async () => {
     const user = userEvent.setup();
     renderSettings();
 
-    await user.press(screen.getByText("On"));
     await user.press(screen.getByText("AI Rules"));
 
-    // 7 rule checks + 1 for AI On
-    expect(screen.getAllByText("check").length).toBe(8);
+    expect(screen.getAllByText("check").length).toBe(7);
 
     await user.press(screen.getByText("Repeat"));
-    // 6 rule checks + 1 for AI On
-    expect(screen.getAllByText("check").length).toBe(7);
+    expect(screen.getAllByText("check").length).toBe(6);
     expect(screen.getByText("6 / 7")).toBeTruthy();
 
     await user.press(screen.getByText("Repeat"));
-    expect(screen.getAllByText("check").length).toBe(8);
+    expect(screen.getAllByText("check").length).toBe(7);
     expect(screen.getByText("7 / 7")).toBeTruthy();
   });
 
@@ -195,7 +154,6 @@ describe("SettingsScreen", () => {
     const user = userEvent.setup();
     renderSettings();
 
-    await user.press(screen.getByText("On"));
     await user.press(screen.getByText("AI Rules"));
 
     expect(screen.getByText("Repeat")).toBeTruthy();
@@ -225,7 +183,7 @@ describe("SettingsScreen", () => {
 
     // Open modal: Light has check, Dark and System don't
     await user.press(screen.getByText("Theme"));
-    expect(screen.getAllByText("check").length).toBe(2); // light (modal) + AI guess off
+    expect(screen.getAllByText("check").length).toBe(1); // light (in modal)
     // Dismiss by pressing Dark to avoid ambiguous System press
     await user.press(screen.getByText("Dark"));
     expect(screen.getByText("Dark")).toBeTruthy();

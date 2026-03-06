@@ -11,7 +11,6 @@ interface AppActions {
   cycleThemeMode: () => void;
   setThemeMode: (mode: ThemeMode) => void;
   setLocaleMode: (mode: LocaleMode) => void;
-  setAiGuessEnabled: (enabled: boolean) => void;
   setEnabledAiRules: (rules: AiRuleId[]) => void;
   updateHighScore: (mode: GameMode, score: number) => void;
 }
@@ -19,7 +18,6 @@ interface AppActions {
 interface AppState {
   themeMode: ThemeMode;
   localeMode: LocaleMode;
-  aiGuessEnabled: boolean;
   enabledAiRules: AiRuleId[];
   highScores: Record<GameMode, number>;
   actions: AppActions;
@@ -34,7 +32,6 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       themeMode: "system",
       localeMode: "system",
-      aiGuessEnabled: false,
       enabledAiRules: ALL_AI_RULE_IDS,
       highScores: { classic: 0, directions: 0, countdown: 0, countdownDirections: 0 },
 
@@ -48,7 +45,6 @@ export const useAppStore = create<AppState>()(
 
         setThemeMode: (mode) => set({ themeMode: mode }),
         setLocaleMode: (mode) => set({ localeMode: mode }),
-        setAiGuessEnabled: (enabled) => set({ aiGuessEnabled: enabled }),
         setEnabledAiRules: (rules) => set({ enabledAiRules: rules }),
 
         updateHighScore: (mode, score) => {
@@ -64,7 +60,6 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         themeMode: state.themeMode,
         localeMode: state.localeMode,
-        aiGuessEnabled: state.aiGuessEnabled,
         enabledAiRules: state.enabledAiRules,
         highScores: state.highScores,
       }),

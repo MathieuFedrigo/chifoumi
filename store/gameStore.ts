@@ -296,7 +296,6 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     makeInput: (input: Choice | Direction) => {
       const { phase, score, phaseStartedAt, modeData, aiGuess, actions: { endGame } } = get();
-      const aiGuessEnabled = useAppStore.getState().aiGuessEnabled;
       const isDir = isDirectionInput(input);
 
       if (isDir && modeData.gameMode !== "directions" && modeData.gameMode !== "countdownDirections") return;
@@ -332,7 +331,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
           return endGame("wrong_type", input);
         }
 
-        if (aiGuessEnabled && aiGuess === input) {
+        if (aiGuess === input) {
           set({ roundHistory: [...get().roundHistory, currentEntry] });
           return endGame("ai_guessed", input);
         }
@@ -347,7 +346,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
       if (isDir !== isDirectionPhase(modeData)) return endGame("wrong_type", input);
 
-      if (aiGuessEnabled && aiGuess === input) return endGame("ai_guessed", input);
+      if (aiGuess === input) return endGame("ai_guessed", input);
 
       if (phase === choosePhase) return set({ modeData: buildInputModeData(modeData, input) });
       if (phase === gracePhase) {
@@ -360,7 +359,6 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     advancePhase: () => {
       const { phase, modeData, roundHistory, actions: { endGame } } = get();
-      const aiGuessEnabled = useAppStore.getState().aiGuessEnabled;
       const choosePhase = getChoosePhase(modeData);
 
       // Advance through R-P-S phases before choose
@@ -370,7 +368,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         return set({
           phase: nextPhase,
           phaseStartedAt: Date.now(),
-          ...(aiGuessEnabled && nextPhase === revealPhase && revealGuess(roundHistory, getRoundType(modeData))),
+          ...(nextPhase === revealPhase && revealGuess(roundHistory, getRoundType(modeData))),
         });
       }
 
@@ -384,7 +382,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
             phase: "result" as const,
             score: s.score + 1,
             phaseStartedAt: Date.now(),
-            ...(aiGuessEnabled && guessUpdateAtPhase("result", nextModeData, [...roundHistory, entry])),
+            ...guessUpdateAtPhase("result", nextModeData, [...roundHistory, entry]),
           }));
         }
         return endGame("too_late");
@@ -403,7 +401,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         phaseStartedAt: Date.now(),
         modeData: nextModeData,
         roundHistory: newHistory,
-        ...(aiGuessEnabled && guessUpdateAtPhase("rock", nextModeData, newHistory)),
+        ...guessUpdateAtPhase("rock", nextModeData, newHistory),
       });
     },
 
