@@ -188,6 +188,38 @@ describe("HistoryScreen", () => {
     expect(screen.getByText("YOU")).toBeTruthy();
   });
 
+  it("renders mistake in direction phase with aiDirection set — uses direction icon branch", () => {
+    setHistory([
+      {
+        type: "mistake",
+        choosePhase: "scissors",
+        mistakeReason: "too_early",
+        aiChoice: "rock",
+        playerChoice: null,
+        aiDirection: "left",
+      },
+    ]);
+    renderHistory();
+    expect(screen.getByText("Too early!")).toBeTruthy();
+    expect(screen.getByText("AI")).toBeTruthy();
+  });
+
+  it("renders mistake in direction phase with aiDirection null — falls back to RPS icon", () => {
+    setHistory([
+      {
+        type: "mistake",
+        choosePhase: "scissors",
+        mistakeReason: "too_late",
+        aiChoice: "scissors",
+        playerChoice: null,
+        aiDirection: null,
+      },
+    ]);
+    renderHistory();
+    expect(screen.getByText("Too late!")).toBeTruthy();
+    expect(screen.getByText("AI")).toBeTruthy();
+  });
+
   it("renders round followed by mistake", () => {
     setHistory([
       {

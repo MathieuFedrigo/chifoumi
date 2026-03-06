@@ -301,7 +301,7 @@ const buildMistakeHistoryEntry = (modeData: ModeData, reason: MistakeReason, inp
       aiChoice: getRandomChoice(),
       playerChoice: input && !isDirectionInput(input) ? input : null,
       playerDirection: input && isDirectionInput(input) ? input : modeData.playerInput,
-      aiDirection: modeData.aiInput,
+      aiDirection: modeData.aiInput ?? getRandomDirection(),
     };
   }
 

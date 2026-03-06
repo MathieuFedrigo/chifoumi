@@ -113,6 +113,12 @@ function HistoryItem({ entry, index, colors, t }: HistoryItemProps) {
             size={28}
             color={colors.text}
           />
+        ) : entry.type === "mistake" && entry.aiDirection ? (
+          <FontAwesome5
+            name={DIRECTION_ICONS[entry.aiDirection]}
+            size={28}
+            color={colors.text}
+          />
         ) : (
           <FontAwesome5
             name={CHOICE_ICONS[entry.aiChoice]}
