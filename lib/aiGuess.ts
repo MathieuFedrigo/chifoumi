@@ -11,7 +11,7 @@ const repeatRule: GuessRule = (history, forRoundType) => {
     const choices: Choice[] = [];
     for (let i = history.length - 1; i >= 0 && choices.length < 2; i--) {
       const entry = history[i]!;
-      if (entry.type === "round" && !entry.directionRound) {
+      if (entry.type === "round" && entry.isDirectionRound === false) {
         choices.push(entry.playerChoice);
       }
     }
@@ -23,8 +23,8 @@ const repeatRule: GuessRule = (history, forRoundType) => {
   const dirs: Direction[] = [];
   for (let i = history.length - 1; i >= 0 && dirs.length < 2; i--) {
     const entry = history[i]!;
-    if (entry.type === "round" && entry.directionRound) {
-      dirs.push(entry.directionRound.playerDirection);
+    if (entry.type === "round" && entry.isDirectionRound === true) {
+      dirs.push(entry.playerDirection);
     }
   }
   if (dirs.length === 2 && dirs[0] === dirs[1]) return dirs[0]!;

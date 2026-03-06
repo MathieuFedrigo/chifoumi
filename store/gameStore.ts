@@ -409,6 +409,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
           return endGame("wrong_type", input);
         }
 
+        if (aiGuessEnabled && aiGuess === input) {
+          set({ roundHistory: [...get().roundHistory, currentEntry] });
+          return endGame("ai_guessed", input);
+        }
+
         return set({
           modeData: buildInputModeData(nextModeData, input),
           phase: nextChoosePhase,

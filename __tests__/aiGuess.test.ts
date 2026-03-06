@@ -3,6 +3,7 @@ import type { HistoryEntry } from "@/store/gameStore";
 
 const rpsRound = (playerChoice: "rock" | "paper" | "scissors"): HistoryEntry => ({
   type: "round",
+  isDirectionRound: false,
   choosePhase: "scissors",
   aiChoice: "rock",
   playerChoice,
@@ -11,15 +12,11 @@ const rpsRound = (playerChoice: "rock" | "paper" | "scissors"): HistoryEntry => 
 
 const dirRound = (playerDirection: "up" | "down" | "left" | "right"): HistoryEntry => ({
   type: "round",
+  isDirectionRound: true,
   choosePhase: "scissors",
-  aiChoice: "rock",
-  playerChoice: "rock",
   roundResult: "win",
-  directionRound: {
-    aiDirection: "up",
-    playerDirection,
-    matched: playerDirection === "up",
-  },
+  aiDirection: "up",
+  playerDirection,
 });
 
 describe("computeAiGuess", () => {
