@@ -64,6 +64,15 @@ const en = {
     aiGuess: "AI Guess",
     aiGuessOn: "On",
     aiGuessOff: "Off",
+    aiRules: "AI Rules",
+    aiRulesCount: "{{count}} / 7",
+    aiRuleRepeat: "Repeat",
+    aiRuleRpsCycle: "RPS Cycle",
+    aiRuleDirCycle: "Direction Cycle",
+    aiRuleCrossCycle: "Cross Cycle",
+    aiRuleAfterDirection: "After Direction",
+    aiRuleAfterRPS: "After RPS",
+    aiRuleMostFrequent: "Most Frequent",
   },
 } as const;
 

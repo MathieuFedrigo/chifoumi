@@ -4,7 +4,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/useTheme";
 import { type Theme } from "@/constants/theme";
 import { useTranslation } from "react-i18next";
-import { useAppStore, useAppStoreActions, ThemeMode, LocaleMode } from "@/store/appStore";
+import { useAppStore, useAppStoreActions, type ThemeMode, type LocaleMode, type AiRuleId } from "@/store/appStore";
+import { ALL_AI_RULE_IDS } from "@/lib/aiGuess";
 import * as Sentry from "@sentry/react-native";
 
 interface DropdownOption<T> {
@@ -89,16 +90,91 @@ function SettingDropdown<T extends string>({
   );
 }
 
+interface SettingMultiSelectProps<T extends string> {
+  label: string;
+  summary: string;
+  options: { key: T; label: string }[];
+  enabledKeys: T[];
+  onToggle: (key: T) => void;
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  theme: Theme;
+}
+
+function SettingMultiSelect<T extends string>({
+  label,
+  summary,
+  options,
+  enabledKeys,
+  onToggle,
+  open,
+  onOpen,
+  onClose,
+  theme,
+}: SettingMultiSelectProps<T>) {
+  return (
+    <>
+      <Pressable
+        style={[styles.dropdownRow, { borderBottomColor: theme.colors.border }]}
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        <Text style={[styles.dropdownLabel, { color: theme.colors.textSecondary }]}>
+          {label}
+        </Text>
+        <View style={styles.dropdownValue}>
+          <Text style={[styles.rowText, { color: theme.colors.text }]}>{summary}</Text>
+          <MaterialCommunityIcons
+            name="chevron-down"
+            size={20}
+            color={theme.colors.textSecondary}
+          />
+        </View>
+      </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+        <Pressable testID="multiselect-overlay" style={styles.overlay} onPress={onClose}>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+            {options.map((option, index) => (
+              <Pressable
+                key={option.key}
+                style={[
+                  styles.optionRow,
+                  index < options.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: theme.colors.border,
+                  },
+                ]}
+                onPress={() => onToggle(option.key)}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
+              >
+                <Text style={[styles.rowText, { color: theme.colors.text }]}>{option.label}</Text>
+                {enabledKeys.includes(option.key) && (
+                  <MaterialCommunityIcons name="check" size={22} color={theme.colors.button} />
+                )}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 export default function SettingsScreen() {
   const theme = useTheme();
   const { t } = useTranslation();
   const themeMode = useAppStore((s) => s.themeMode);
   const localeMode = useAppStore((s) => s.localeMode);
   const aiGuessEnabled = useAppStore((s) => s.aiGuessEnabled);
-  const { setThemeMode, setLocaleMode, setAiGuessEnabled } = useAppStoreActions();
+  const enabledAiRules = useAppStore((s) => s.enabledAiRules);
+  const { setThemeMode, setLocaleMode, setAiGuessEnabled, setEnabledAiRules } = useAppStoreActions();
 
   const [themeOpen, setThemeOpen] = useState(false);
   const [localeOpen, setLocaleOpen] = useState(false);
+  const [aiRulesOpen, setAiRulesOpen] = useState(false);
 
   const handleThemeChange = (mode: ThemeMode) => {
     Sentry.addBreadcrumb({
@@ -130,6 +206,19 @@ export default function SettingsScreen() {
     setAiGuessEnabled(enabled);
   };
 
+  const handleAiRuleToggle = (id: AiRuleId) => {
+    Sentry.addBreadcrumb({
+      category: "settings",
+      message: "AI Rule toggled",
+      level: "info",
+      data: { rule: id },
+    });
+    const next = enabledAiRules.includes(id)
+      ? enabledAiRules.filter((r) => r !== id)
+      : [...enabledAiRules, id];
+    setEnabledAiRules(next);
+  };
+
   const themeOptions: DropdownOption<ThemeMode>[] = [
     { key: "light", label: t("settings.themeLight") },
     { key: "dark", label: t("settings.themeDark") },
@@ -145,6 +234,16 @@ export default function SettingsScreen() {
   const aiGuessOptions: { key: boolean; label: string }[] = [
     { key: true, label: t("settings.aiGuessOn") },
     { key: false, label: t("settings.aiGuessOff") },
+  ];
+
+  const aiRuleOptions: { key: AiRuleId; label: string }[] = [
+    { key: "repeat", label: t("settings.aiRuleRepeat") },
+    { key: "rpsCycle", label: t("settings.aiRuleRpsCycle") },
+    { key: "dirCycle", label: t("settings.aiRuleDirCycle") },
+    { key: "crossCycle", label: t("settings.aiRuleCrossCycle") },
+    { key: "afterDirection", label: t("settings.aiRuleAfterDirection") },
+    { key: "afterRPS", label: t("settings.aiRuleAfterRPS") },
+    { key: "mostFrequent", label: t("settings.aiRuleMostFrequent") },
   ];
 
   return (
@@ -200,6 +299,20 @@ export default function SettingsScreen() {
           )}
         </Pressable>
       ))}
+
+      {aiGuessEnabled && (
+        <SettingMultiSelect
+          label={t("settings.aiRules")}
+          summary={t("settings.aiRulesCount", { count: enabledAiRules.length })}
+          options={aiRuleOptions}
+          enabledKeys={enabledAiRules}
+          onToggle={handleAiRuleToggle}
+          open={aiRulesOpen}
+          onOpen={() => setAiRulesOpen(true)}
+          onClose={() => setAiRulesOpen(false)}
+          theme={theme}
+        />
+      )}
     </View>
   );
 }

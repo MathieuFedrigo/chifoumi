@@ -139,6 +139,72 @@ describe("SettingsScreen", () => {
     expect(screen.getAllByText("check").length).toBe(1);
   });
 
+  it("enabling AI Guess shows AI Rules row with 7 / 7 summary", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    expect(screen.queryByText("AI Rules")).toBeNull();
+
+    await user.press(screen.getByText("On"));
+
+    expect(screen.getByText("AI Rules")).toBeTruthy();
+    expect(screen.getByText("7 / 7")).toBeTruthy();
+    // 3 chevrons: theme, language, ai rules
+    expect(screen.getAllByText("chevron-down").length).toBe(3);
+  });
+
+  it("opening AI Rules popover shows all 7 rules with checkmarks", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.press(screen.getByText("On"));
+    await user.press(screen.getByText("AI Rules"));
+
+    expect(screen.getByText("Repeat")).toBeTruthy();
+    expect(screen.getByText("RPS Cycle")).toBeTruthy();
+    expect(screen.getByText("Direction Cycle")).toBeTruthy();
+    expect(screen.getByText("Cross Cycle")).toBeTruthy();
+    expect(screen.getByText("After Direction")).toBeTruthy();
+    expect(screen.getByText("After RPS")).toBeTruthy();
+    expect(screen.getByText("Most Frequent")).toBeTruthy();
+    // 7 rule checks + 1 for AI Guess On
+    expect(screen.getAllByText("check").length).toBe(8);
+  });
+
+  it("toggling a rule removes its checkmark and toggling again restores it", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.press(screen.getByText("On"));
+    await user.press(screen.getByText("AI Rules"));
+
+    // 7 rule checks + 1 for AI On
+    expect(screen.getAllByText("check").length).toBe(8);
+
+    await user.press(screen.getByText("Repeat"));
+    // 6 rule checks + 1 for AI On
+    expect(screen.getAllByText("check").length).toBe(7);
+    expect(screen.getByText("6 / 7")).toBeTruthy();
+
+    await user.press(screen.getByText("Repeat"));
+    expect(screen.getAllByText("check").length).toBe(8);
+    expect(screen.getByText("7 / 7")).toBeTruthy();
+  });
+
+  it("closing AI Rules overlay hides rule names", async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.press(screen.getByText("On"));
+    await user.press(screen.getByText("AI Rules"));
+
+    expect(screen.getByText("Repeat")).toBeTruthy();
+
+    await user.press(screen.getByTestId("multiselect-overlay"));
+
+    expect(screen.queryByText("Repeat")).toBeNull();
+  });
+
   it("cycles through theme modes via dropdown", async () => {
     const user = userEvent.setup();
     renderSettings();

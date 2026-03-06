@@ -7,7 +7,9 @@ import {
   afterDirectionRule,
   afterRPSRule,
   mostFrequentRule,
+  ALL_AI_RULE_IDS,
 } from "@/lib/aiGuess";
+import { useAppStore } from "@/store/appStore";
 import type { HistoryEntry } from "@/store/gameStore";
 
 const rpsRound = (playerChoice: "rock" | "paper" | "scissors"): HistoryEntry => ({
@@ -41,6 +43,26 @@ describe("computeAiGuess", () => {
   it("returns null when no rule matches", () => {
     const history = [rpsRound("rock"), rpsRound("paper")];
     expect(computeAiGuess({ history, forRoundType: "rps" })).toBeNull();
+  });
+
+  it("returns null when no rules are enabled", () => {
+    useAppStore.getState().actions.setEnabledAiRules([]);
+    const history = [rpsRound("paper"), rpsRound("paper")];
+    expect(computeAiGuess({ history, forRoundType: "rps" })).toBeNull();
+  });
+
+  it("skips disabled rules and uses only enabled ones", () => {
+    // repeat rule would fire (paper, paper), but only rpsCycle is enabled
+    // rpsCycle needs 4 rounds → returns null
+    useAppStore.getState().actions.setEnabledAiRules(["rpsCycle"]);
+    const history = [rpsRound("paper"), rpsRound("paper")];
+    expect(computeAiGuess({ history, forRoundType: "rps" })).toBeNull();
+  });
+
+  it("ALL_AI_RULE_IDS contains all 7 rule ids in order", () => {
+    expect(ALL_AI_RULE_IDS).toEqual([
+      "repeat", "rpsCycle", "dirCycle", "crossCycle", "afterDirection", "afterRPS", "mostFrequent",
+    ]);
   });
 });
 

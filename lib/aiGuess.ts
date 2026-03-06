@@ -1,4 +1,9 @@
 import type { Choice, Direction, HistoryEntry } from "@/store/gameStore";
+import { useAppStore } from "@/store/appStore";
+import { type AiRuleId, ALL_AI_RULE_IDS } from "@/lib/aiRuleIds";
+
+export type { AiRuleId };
+export { ALL_AI_RULE_IDS };
 
 export type AiGuess = Choice | Direction | null;
 export type RoundType = "rps" | "directions";
@@ -196,19 +201,27 @@ export const mostFrequentRule: GuessRule = (history, forRoundType) => {
   return Math.random() < 0.7 ? dominant : null;
 };
 
-const GUESS_RULES: GuessRule[] = [
-  repeatRule,
-  rpsOnlyCycleRule,
-  dirOnlyCycleRule,
-  crossTypeCycleRule,
-  afterDirectionRule,
-  afterRPSRule,
-  mostFrequentRule,
-];
 
-export const computeAiGuess = ({ history, forRoundType }: { history: HistoryEntry[]; forRoundType: RoundType }): AiGuess => {
-  for (const rule of GUESS_RULES) {
-    const guess = rule(history, forRoundType);
+const RULE_MAP: Record<AiRuleId, GuessRule> = {
+  repeat: repeatRule,
+  rpsCycle: rpsOnlyCycleRule,
+  dirCycle: dirOnlyCycleRule,
+  crossCycle: crossTypeCycleRule,
+  afterDirection: afterDirectionRule,
+  afterRPS: afterRPSRule,
+  mostFrequent: mostFrequentRule,
+};
+
+export const computeAiGuess = ({
+  history,
+  forRoundType,
+}: {
+  history: HistoryEntry[];
+  forRoundType: RoundType;
+}): AiGuess => {
+  const enabledRules = useAppStore.getState().enabledAiRules;
+  for (const id of enabledRules) {
+    const guess = RULE_MAP[id](history, forRoundType);
     if (guess !== null) return guess;
   }
   return null;
