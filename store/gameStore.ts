@@ -5,6 +5,7 @@ import { computeAiGuess } from "@/lib/aiGuess";
 import type { AiGuess, RoundType } from "@/lib/aiGuess";
 import { useAppStore } from "@/store/appStore";
 import { CLASSIC_RESET, COUNTDOWN_DIR_DIR_RESET, COUNTDOWN_DIR_RPS_RESET, COUNTDOWN_RESET, DIRECTIONS_DIR_RESET, DIRECTIONS_RPS_RESET, GUESS_RESET, MODE_RESET } from "./helpers/RESET_OBJECTS";
+import { getRandomChoice, getRandomDirection } from "./helpers/getRandom";
 
 export type Choice = "rock" | "paper" | "scissors";
 export type GamePhase = "idle" | "rock" | "paper" | "scissors" | "result";
@@ -147,17 +148,6 @@ export const determineResult = ({ player, ai }: { player: Choice; ai: Choice }):
   return "lose";
 };
 
-const CHOICES: Choice[] = ["rock", "paper", "scissors"];
-const DIRECTIONS: Direction[] = ["up", "down", "left", "right"];
-
-export const getRandomChoice = (): Choice => {
-  return CHOICES[Math.floor(Math.random() * CHOICES.length)]!;
-};
-
-export const getRandomDirection = (): Direction => {
-  return DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)]!;
-};
-
 /** Phase at which AI guess should be revealed (grace phase or "result" if no grace). */
 export const getAiGuessRevealPhase = (modeData: ModeData): GamePhase | "result" =>
   getGracePhase(modeData) ?? "result";
@@ -171,7 +161,7 @@ const isGracePeriodActive = ({ phaseStartedAt, score }: { phaseStartedAt: number
 };
 
 // Narrows to direction-round phases (isDirectionRound: true)
-const isDirectionPhase = (m: ModeData): m is DirectionsDirectionPhase | CountdownDirDirectionPhase =>
+export const isDirectionPhase = (m: ModeData): m is DirectionsDirectionPhase | CountdownDirDirectionPhase =>
   "isDirectionRound" in m && m.isDirectionRound === true;
 
 // Narrows to Direction (vs Choice); replaces the inline (DIRECTIONS as readonly string[]) cast in makeInput
